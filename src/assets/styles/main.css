@@ -1,0 +1,222 @@
+@import './variables.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--filasur-bg);
+  color: var(--filasur-text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--filasur-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--filasur-border);
+  color: var(--filasur-text);
+}
+
+.card {
+  background: var(--filasur-card);
+  border: 1px solid var(--filasur-border);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: var(--filasur-muted);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--filasur-border);
+  border-radius: 6px;
+}
+
+.page-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.page-subtitle {
+  margin: 0 0 24px;
+  color: var(--filasur-muted);
+}
+
+.error-text {
+  color: var(--filasur-danger);
+  font-size: 14px;
+}
+
+.success-text {
+  color: var(--filasur-success);
+  font-size: 14px;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.toolbar-row .field {
+  min-width: 160px;
+}
+
+.toolbar-row .field.grow {
+  flex: 1;
+  min-width: 200px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--filasur-border);
+  font-size: 14px;
+}
+
+.data-table th {
+  color: var(--filasur-muted);
+  font-weight: 600;
+  background: #fafafa;
+}
+
+.data-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.link-action {
+  color: var(--filasur-primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.link-action:hover {
+  text-decoration: underline;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--filasur-border);
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  color: var(--filasur-muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--filasur-primary);
+  border-bottom-color: var(--filasur-primary);
+  font-weight: 600;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--filasur-muted);
+}
+
+.pagination-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination-btns button {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid var(--filasur-border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination-btns button.active {
+  background: var(--filasur-primary);
+  color: #fff;
+  border-color: var(--filasur-primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--filasur-muted);
+}
+
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
