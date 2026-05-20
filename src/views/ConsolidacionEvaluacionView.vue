@@ -11,7 +11,10 @@
 
     <div class="card toolbar-row">
       <div class="field">
-        <label>ID evaluación</label>
+        <LabelHint
+          label="ID evaluación"
+          hint="Seleccione la evaluación cuyos resultados por área desea consolidar."
+        />
         <select v-model="evalId" @change="cargar">
           <option v-for="e in evalIds" :key="e.id" :value="e.id">{{ e.id }} — {{ e.proveedor }}</option>
         </select>
@@ -23,7 +26,8 @@
     <template v-else-if="c">
       <header class="card eval-header">
         <h3>Evaluación: {{ c.producto }}</h3>
-        <p>Orden de compra: {{ c.ordenCompra }} · Fecha de evaluación: {{ c.fechaEvaluacion }}</p>
+        <p>Orden de compra: {{ c.ordenCompra }}</p>
+        <p>Fecha de evaluación: {{ c.fechaEvaluacion }}</p>
       </header>
 
       <section class="card">
@@ -31,11 +35,11 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Área evaluadora</th>
-              <th>Evaluador</th>
-              <th>Puntaje (0-5)</th>
-              <th>Peso (%)</th>
-              <th>Puntaje ponderado</th>
+              <ThHint label="Área evaluadora"  />
+              <ThHint label="Evaluador"  />
+              <ThHint label="Puntaje (0-5)" />
+              <ThHint label="Peso (%)" />
+              <ThHint label="Puntaje ponderado" />
               <th>Observaciones</th>
             </tr>
           </thead>
@@ -54,8 +58,10 @@
 
       <section class="result-row">
         <article class="card result-score">
-          <span>Puntaje final</span>
-          <strong>{{ c.puntajeFinal }} / {{ c.puntajeMax }}</strong>
+          <span class="result-label">
+            Puntaje final
+          </span>
+          <strong class="result-value">{{ c.puntajeFinal }} / {{ c.puntajeMax }}</strong>
           <div class="stars">★★★★☆</div>
         </article>
         <article class="card result-box" :class="resultClass">
@@ -65,7 +71,7 @@
         </article>
         <div class="result-actions">
           <button type="button" class="btn btn-primary" @click="aprobar">Aprobar proveedor</button>
-          <button type="button" class="btn btn-ghost" @click="rechazar">Rechazar</button>
+          <button type="button" class="btn btn-sesion" @click="rechazar">Rechazar</button>
           <button type="button" class="btn btn-ghost" disabled>Registrar en ERP</button>
         </div>
       </section>
@@ -82,6 +88,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEvaluacionStore } from '@/stores/evaluacion'
 import api from '@/services/api'
+import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
+import LabelHint from '@/components/ui/LabelHint.vue'
+import ThHint from '@/components/ui/ThHint.vue'
+import AppTooltip from '@/components/ui/AppTooltip.vue'
 
 const route = useRoute()
 const store = useEvaluacionStore()
@@ -102,13 +112,38 @@ function cargar() {
 }
 
 async function aprobar() {
-  await api.evaluaciones.aprobar(evalId.value)
-  alert('Proveedor aprobado (mock).')
+  const ok = await confirmAction({
+    title: '¿Aprobar proveedor?',
+    text: 'El proveedor quedará apto para registro en ERP.',
+    icon: 'success',
+    confirmText: 'Aprobar',
+  })
+  if (!ok) return
+  try {
+    await api.evaluaciones.aprobar(evalId.value)
+    toastSuccess('Proveedor aprobado correctamente.')
+    cargar()
+  } catch (e) {
+    toastError(e.message)
+  }
 }
 
 async function rechazar() {
-  await api.evaluaciones.rechazar(evalId.value)
-  alert('Proveedor rechazado (mock).')
+  const ok = await confirmAction({
+    title: '¿Rechazar proveedor?',
+    text: 'Esta acción marcará la evaluación como rechazada.',
+    icon: 'error',
+    confirmText: 'Rechazar',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await api.evaluaciones.rechazar(evalId.value)
+    toastSuccess('Proveedor rechazado.')
+    cargar()
+  } catch (e) {
+    toastError(e.message)
+  }
 }
 
 onMounted(async () => {
@@ -129,9 +164,31 @@ onMounted(async () => {
   margin: 16px 0;
   align-items: stretch;
 }
-.result-score span, .result-box span { display: block; font-size: 13px; color: var(--filasur-muted); }
-.result-score strong { font-size: 28px; }
-.stars { color: #faad14; margin-top: 8px; }
+.result-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.result-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--filasur-muted);
+}
+.result-value {
+  display: block;
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 4px 0 0;
+}
+.stars {
+  display: block;
+  color: #faad14;
+  margin-top: 4px;
+  font-size: 18px;
+}
 .result-box strong { font-size: 22px; display: block; margin: 8px 0; }
 .result-box.approved { border-color: var(--filasur-success); background: #f6ffed; }
 .result-box.approved strong { color: var(--filasur-success); }

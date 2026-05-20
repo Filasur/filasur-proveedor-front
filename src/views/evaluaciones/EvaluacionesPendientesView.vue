@@ -5,7 +5,7 @@
         <h2 class="page-title">Evaluaciones pendientes</h2>
         <p class="page-subtitle">Lista de evaluaciones en curso con filtros por estado</p>
       </div>
-      <RouterLink :to="{ name: 'nueva-evaluacion' }" class="btn btn-primary">+ Nueva evaluación</RouterLink>
+      <RouterLink :to="{ name: 'nueva-evaluacion' }" class="btn btn-primary">Nueva evaluación</RouterLink>
     </div>
 
     <div class="card toolbar-row">
@@ -77,8 +77,3 @@ onMounted(async () => {
   evaluaciones.value = await api.evaluaciones.listar({ pendientes: true })
 })
 </script>
-
-<style scoped>
-.page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.page-head .page-subtitle { margin-bottom: 16px; }
-</style>

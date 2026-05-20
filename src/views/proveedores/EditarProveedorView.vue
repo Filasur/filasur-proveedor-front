@@ -13,15 +13,15 @@
 
     <form v-if="form" class="card form-grid two" @submit.prevent="onSubmit">
       <div>
-        <label for="ruc">RUC</label>
+        <LabelHint for-id="ruc" label="RUC" hint="Número de RUC del proveedor (11 dígitos)." />
         <input id="ruc" v-model="form.ruc" required maxlength="11" />
       </div>
       <div>
-        <label for="razon">Razón social</label>
+        <LabelHint for-id="razon" label="Razón social" hint="Nombre legal registrado de la empresa." />
         <input id="razon" v-model="form.razonSocial" required />
       </div>
       <div>
-        <label for="tipo">Tipo proveedor</label>
+        <LabelHint for-id="tipo" label="Tipo proveedor" hint="Materia prima, servicio o mixto." />
         <select id="tipo" v-model="form.tipoProveedor" required>
           <option value="Materia prima">Materia prima</option>
           <option value="Servicio">Servicio</option>
@@ -29,27 +29,25 @@
         </select>
       </div>
       <div>
-        <label for="rubro">Rubro</label>
+        <LabelHint for-id="rubro" label="Rubro" hint="Giro o sector económico del proveedor." />
         <input id="rubro" v-model="form.rubro" required />
       </div>
       <div>
-        <label for="contacto">Contacto</label>
+        <LabelHint for-id="contacto" label="Contacto" hint="Persona de referencia en la empresa." />
         <input id="contacto" v-model="form.contacto" required />
       </div>
       <div>
-        <label for="telefono">Teléfono</label>
+        <LabelHint for-id="telefono" label="Teléfono" hint="Teléfono de contacto principal." />
         <input id="telefono" v-model="form.telefono" />
       </div>
       <div class="full">
-        <label for="correo">Correo</label>
+        <LabelHint for-id="correo" label="Correo" hint="Correo electrónico de contacto comercial." />
         <input id="correo" v-model="form.correo" type="email" required />
       </div>
       <div class="full">
-        <label for="direccion">Dirección</label>
+        <LabelHint for-id="direccion" label="Dirección" hint="Domicilio fiscal o de operaciones." />
         <input id="direccion" v-model="form.direccion" />
       </div>
-      <p v-if="mensaje" class="success-text full">{{ mensaje }}</p>
-      <p v-if="error" class="error-text full">{{ error }}</p>
       <div class="actions full">
         <RouterLink class="btn btn-ghost" :to="{ name: 'detalle-proveedor', params: { id: route.params.id } }">Cancelar</RouterLink>
         <button class="btn btn-primary" type="submit" :disabled="loading">{{ loading ? 'Guardando...' : 'Guardar cambios' }}</button>
@@ -63,13 +61,13 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
+import { toastError, toastSuccess } from '@/utils/alerts'
+import LabelHint from '@/components/ui/LabelHint.vue'
 
 const route = useRoute()
 const router = useRouter()
 const form = ref(null)
 const loading = ref(false)
-const mensaje = ref('')
-const error = ref('')
 
 onMounted(async () => {
   const p = await api.proveedores.obtener(route.params.id)
@@ -87,14 +85,12 @@ onMounted(async () => {
 
 async function onSubmit() {
   loading.value = true
-  mensaje.value = ''
-  error.value = ''
   try {
     await api.proveedores.actualizar(route.params.id, { ...form.value })
-    mensaje.value = 'Proveedor actualizado correctamente.'
-    setTimeout(() => router.push({ name: 'detalle-proveedor', params: { id: route.params.id } }), 800)
+    toastSuccess('Proveedor actualizado correctamente.')
+    setTimeout(() => router.push({ name: 'detalle-proveedor', params: { id: route.params.id } }), 600)
   } catch (e) {
-    error.value = e.message
+    toastError(e.message)
   } finally {
     loading.value = false
   }

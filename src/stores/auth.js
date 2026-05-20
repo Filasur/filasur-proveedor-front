@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
 import { TOKEN_KEY, USER_KEY } from '@/router'
+import { toastSuccess } from '@/utils/alerts'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY) || '')
@@ -30,6 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const session = await api.auth.login({ email, password })
       persistSession(session)
+      toastSuccess(`Bienvenido, ${session.user?.nombre || 'usuario'}`)
       return session
     } catch (e) {
       error.value = e.message || 'No se pudo iniciar sesión'

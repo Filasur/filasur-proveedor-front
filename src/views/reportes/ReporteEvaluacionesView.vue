@@ -1,14 +1,7 @@
 <template>
   <div>
-    <h2 class="page-title">Reportes</h2>
-    <p class="page-subtitle">Consulta y exportación de evaluaciones y estadísticas</p>
-
-    <div class="tabs">
-      <button type="button" class="tab active">Evaluaciones</button>
-      <button type="button" class="tab" disabled>Proveedores</button>
-      <button type="button" class="tab" disabled>Desempeño</button>
-      <button type="button" class="tab" disabled>Ranking</button>
-    </div>
+    <h2 class="page-title">Reporte de evaluaciones</h2>
+    <p class="page-subtitle">Consulta y exportación de evaluaciones finalizadas</p>
 
     <div class="kpi-row">
       <article class="card kpi-mini"><span>Aprobados</span><strong>{{ stats.aprobados }}</strong></article>
@@ -19,19 +12,18 @@
 
     <div class="card toolbar-row">
       <div class="field">
-        <label>Rango de fechas</label>
+        <LabelHint label="Rango de fechas" />
         <input value="01/04/2025 - 31/05/2025" readonly />
       </div>
       <div class="field">
-        <label>Producto / Material</label>
+        <LabelHint label="Producto / Material" />
         <select v-model="filtroProducto">
           <option value="Todos">Todos</option>
-          <option value="Bolsa PP 50kg">Bolsa PP 50kg</option>
-          <option value="Hilo Algodón 30/1">Hilo Algodón 30/1</option>
+          <option v-for="p in productosUnicos" :key="p" :value="p">{{ p }}</option>
         </select>
       </div>
       <div class="field">
-        <label>Estado</label>
+        <LabelHint label="Estado" />
         <select v-model="filtroEstado" @change="cargar">
           <option value="Todos">Todos</option>
           <option value="Aprobado">Aprobado</option>
@@ -46,11 +38,11 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Proveedor</th>
-            <th>Producto / Material</th>
-            <th>Fecha evaluación</th>
-            <th>Puntaje final</th>
-            <th>Estado</th>
+            <ThHint label="Proveedor" />
+            <ThHint label="Producto / Material" />
+            <ThHint label="Fecha evaluación" />
+            <ThHint label="Puntaje final" />
+            <ThHint label="Estado" />
             <th>Acción</th>
           </tr>
         </thead>
@@ -67,52 +59,57 @@
           </tr>
         </tbody>
       </table>
-      <div class="pagination">
-        <span>Mostrando 1 a {{ filas.length }} de {{ stats.total }} resultados</span>
-        <div class="pagination-btns">
-          <button type="button" class="active">1</button>
-          <button type="button">2</button>
-          <button type="button">3</button>
-        </div>
+      <p v-if="!filas.length" class="empty-state">Sin evaluaciones con los filtros actuales.</p>
+      <div v-else class="pagination">
+        <span>Mostrando {{ filas.length }} de {{ stats.total }} resultados</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import LabelHint from '@/components/ui/LabelHint.vue'
+import ThHint from '@/components/ui/ThHint.vue'
+import { confirmAction, toastInfo } from '@/utils/alerts'
 
 const stats = ref({ total: 0, aprobados: 0, observados: 0, rechazados: 0 })
 const filas = ref([])
+const todasFilas = ref([])
 const filtroEstado = ref('Todos')
 const filtroProducto = ref('Todos')
+
+const productosUnicos = computed(() => {
+  const set = new Set(todasFilas.value.map((f) => f.producto))
+  return [...set].sort()
+})
+
+function aplicarFiltroProducto(lista) {
+  todasFilas.value = lista
+  filas.value =
+    filtroProducto.value === 'Todos' ? lista : lista.filter((f) => f.producto === filtroProducto.value)
+}
+
+watch(filtroProducto, () => aplicarFiltroProducto(todasFilas.value))
 
 async function cargar() {
   const data = await api.reportes.listar({ estado: filtroEstado.value })
   stats.value = data
-  filas.value =
-    filtroProducto.value === 'Todos'
-      ? data.filas
-      : data.filas.filter((f) => f.producto === filtroProducto.value)
+  aplicarFiltroProducto(data.filas)
 }
 
-function exportar() {
-  alert('Exportación PDF/Excel disponible cuando se conecte el backend.')
+async function exportar() {
+  const ok = await confirmAction({
+    title: 'Exportar reporte',
+    text: 'Se generará el reporte de evaluaciones con los filtros actuales. ¿Continuar?',
+    icon: 'info',
+    confirmText: 'Exportar',
+  })
+  if (!ok) return
+  toastInfo('Exportación PDF/Excel disponible cuando se conecte el backend.')
 }
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.kpi-mini span { display: block; font-size: 12px; color: var(--filasur-muted); }
-.kpi-mini strong { font-size: 22px; }
-.tab:disabled { opacity: 0.5; cursor: not-allowed; }
-</style>

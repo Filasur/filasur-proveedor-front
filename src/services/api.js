@@ -44,17 +44,28 @@ const realApi = {
   ranking: {
     listar: () => request('/ranking'),
   },
-  historial: {
-    listar: () => request('/historial'),
+  bitacora: {
+    listar: () => request('/bitacora'),
   },
   reportes: {
     listar: (params) => request(`/reportes?${new URLSearchParams(params || {})}`),
   },
   criterios: {
     listar: () => request('/criterios'),
+    guardar: (body) => request('/criterios', { method: 'PUT', body: JSON.stringify(body) }),
+  },
+  unidades: {
+    listar: () => request('/unidades'),
+    crear: (body) => request('/unidades', { method: 'POST', body: JSON.stringify(body) }),
+    actualizar: (id, body) =>
+      request(`/unidades/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    guardar: (body) => request('/unidades', { method: 'PUT', body: JSON.stringify(body) }),
   },
   productos: {
     listar: () => request('/productos'),
+    crear: (body) => request('/productos', { method: 'POST', body: JSON.stringify(body) }),
+    actualizar: (id, body) =>
+      request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   },
   documentos: {
     listar: () => request('/documentos'),
@@ -62,6 +73,8 @@ const realApi = {
   usuarios: {
     listar: () => request('/usuarios'),
     crear: (body) => request('/usuarios', { method: 'POST', body: JSON.stringify(body) }),
+    actualizar: (id, body) =>
+      request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   },
   roles: {
     listar: () => request('/roles'),

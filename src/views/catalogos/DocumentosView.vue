@@ -5,7 +5,10 @@
 
     <div class="card toolbar-row">
       <div class="field grow">
-        <label>Buscar proveedor o archivo</label>
+        <LabelHint
+          label="Buscar proveedor o archivo"
+          hint="Filtra por razón social del proveedor o nombre del documento."
+        />
         <input v-model="busqueda" placeholder="Nombre del archivo o proveedor..." />
       </div>
     </div>
@@ -14,11 +17,11 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Proveedor</th>
-            <th>Archivo</th>
-            <th>Tipo</th>
-            <th>Tamaño</th>
-            <th>Fecha</th>
+            <ThHint label="Proveedor" hint="Empresa dueña del documento." />
+            <ThHint label="Archivo" hint="Nombre del archivo adjunto." />
+            <ThHint label="Tipo" hint="Formato o categoría (PDF, certificado, etc.)." />
+            <ThHint label="Tamaño" hint="Peso del archivo." />
+            <ThHint label="Fecha" hint="Fecha de carga o vencimiento." />
             <th>Acción</th>
           </tr>
         </thead>
@@ -40,6 +43,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
+import LabelHint from '@/components/ui/LabelHint.vue'
+import ThHint from '@/components/ui/ThHint.vue'
 
 const documentos = ref([])
 const busqueda = ref('')

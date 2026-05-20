@@ -42,7 +42,15 @@
             <div><dt>Tipo proveedor</dt><dd>{{ proveedor.tipoProveedor }}</dd></div>
             <div><dt>Rubro</dt><dd>{{ proveedor.rubro }}</dd></div>
             <div><dt>Contacto</dt><dd>{{ proveedor.contacto }}</dd></div>
-            <div><dt>Clasificación</dt><dd>{{ proveedor.clasificacion }}</dd></div>
+            <div>
+              <dt class="dt-hint">
+                Clasificación
+                <AppTooltip
+                  text="Nivel de desempeño según evaluaciones históricas: A (mejor), B (medio), C (bajo). Distinto del estado del trámite."
+                />
+              </dt>
+              <dd>{{ proveedor.clasificacion }}</dd>
+            </div>
           </dl>
         </div>
 
@@ -51,10 +59,10 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Producto</th>
-                <th>Orden compra</th>
-                <th>Puntaje</th>
-                <th>Estado</th>
+                <ThHint label="Producto" hint="Material evaluado en el proceso." />
+                <ThHint label="Orden compra" hint="Referencia de la OC asociada." />
+                <ThHint label="Puntaje" hint="Resultado consolidado de la evaluación." />
+                <ThHint label="Estado" hint="En proceso, aprobado, rechazado, etc." />
                 <th>Acción</th>
               </tr>
             </thead>
@@ -87,15 +95,15 @@
         </div>
 
         <div v-if="tab === 'historial'" class="card">
-          <h3>Historial</h3>
+          <h3>Bitácora del proveedor</h3>
           <ul class="timeline">
             <li v-for="h in proveedor.historial" :key="h.id">
               <time>{{ h.fecha }}</time>
-              <strong>{{ h.accion }}</strong>
+              <strong> - {{ h.accion }}</strong>
               <p>{{ h.detalle }}</p>
             </li>
           </ul>
-          <p v-if="!proveedor.historial?.length" class="empty-state">Sin registros de historial.</p>
+          <p v-if="!proveedor.historial?.length" class="empty-state">Sin acciones registradas para este proveedor.</p>
         </div>
       </section>
     </div>
@@ -107,6 +115,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import AppTooltip from '@/components/ui/AppTooltip.vue'
+import ThHint from '@/components/ui/ThHint.vue'
 
 const route = useRoute()
 const proveedor = ref(null)
@@ -116,7 +126,7 @@ const tabs = [
   { id: 'info', label: 'Información general' },
   { id: 'evaluaciones', label: 'Evaluaciones' },
   { id: 'documentos', label: 'Documentos' },
-  { id: 'historial', label: 'Historial' },
+  { id: 'historial', label: 'Bitácora' },
 ]
 
 const iniciales = computed(() =>
@@ -155,6 +165,7 @@ onMounted(async () => {
 .section-head { display: flex; justify-content: space-between; align-items: center; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .info-grid dt { font-size: 12px; color: var(--filasur-muted); }
+.dt-hint { display: inline-flex; align-items: center; gap: 6px; }
 .info-grid dd { margin: 4px 0 0; }
 .doc-list { list-style: none; padding: 0; margin: 0; }
 .doc-list li { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--filasur-border); }

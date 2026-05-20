@@ -1,9 +1,9 @@
 <template>
   <div class="login-card card">
     <div class="login-brand">
-      <span class="logo">F</span>
+      <img src="/favicon.svg" alt="FILASUR" class="logo-img">
       <div>
-        <h2>FILASUR</h2>
+        <h2>FILASUR S.A.</h2>
         <p>Evaluación de proveedores</p>
       </div>
     </div>
@@ -39,6 +39,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { toastInfo } from '@/utils/alerts'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -46,6 +47,12 @@ const route = useRoute()
 
 const email = ref(import.meta.env.VITE_MOCK_USER || '')
 const password = ref('')
+const info = ref('')
+
+function recuperar() {
+  info.value = ''
+  toastInfo('Recuperación básica: contacte al administrador o use las credenciales del archivo .env.')
+}
 
 async function onSubmit() {
   try {

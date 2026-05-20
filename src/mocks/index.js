@@ -4,6 +4,7 @@ import {
   mockProveedores,
   mockEvaluaciones,
   mockCriterios,
+  mockUnidades,
   mockProductos,
   mockDocumentos,
   mockRanking,
@@ -105,7 +106,7 @@ export const mockApi = {
       return mockRanking
     },
   },
-  historial: {
+  bitacora: {
     async listar() {
       await delay()
       return mockHistorial
@@ -124,13 +125,62 @@ export const mockApi = {
   criterios: {
     async listar() {
       await delay()
-      return mockCriterios
+      return mockCriterios.map((c) => ({ ...c }))
+    },
+    async guardar(lista) {
+      await delay(500)
+      mockCriterios.splice(0, mockCriterios.length, ...lista.map((c) => ({ ...c })))
+      return mockCriterios.map((c) => ({ ...c }))
+    },
+  },
+  unidades: {
+    async listar() {
+      await delay()
+      return mockUnidades.map((u) => ({ ...u }))
+    },
+    async crear(payload) {
+      await delay(500)
+      const creada = {
+        id: `und-${Date.now()}`,
+        activo: payload.activo !== false,
+        ...payload,
+      }
+      mockUnidades.push(creada)
+      return { ...creada }
+    },
+    async actualizar(id, payload) {
+      await delay(500)
+      const idx = mockUnidades.findIndex((u) => u.id === id)
+      if (idx === -1) throw new Error('Unidad no encontrada')
+      mockUnidades[idx] = { ...mockUnidades[idx], ...payload }
+      return { ...mockUnidades[idx] }
+    },
+    async guardar(lista) {
+      await delay(500)
+      mockUnidades.splice(0, mockUnidades.length, ...lista.map((u) => ({ ...u })))
+      return mockUnidades.map((u) => ({ ...u }))
     },
   },
   productos: {
     async listar() {
       await delay()
-      return mockProductos
+      return mockProductos.map((p) => ({ ...p }))
+    },
+    async crear(payload) {
+      await delay(500)
+      const creado = {
+        id: `mat-${Date.now()}`,
+        ...payload,
+      }
+      mockProductos.push(creado)
+      return { ...creado }
+    },
+    async actualizar(id, payload) {
+      await delay(500)
+      const idx = mockProductos.findIndex((p) => p.id === id)
+      if (idx === -1) throw new Error('Material no encontrado')
+      mockProductos[idx] = { ...mockProductos[idx], ...payload }
+      return { ...mockProductos[idx] }
     },
   },
   documentos: {
@@ -142,11 +192,20 @@ export const mockApi = {
   usuarios: {
     async listar() {
       await delay()
-      return mockUsuarios
+      return mockUsuarios.map((u) => ({ ...u }))
     },
     async crear(payload) {
       await delay(500)
-      return { id: `usr-${Date.now()}`, ...payload, estado: 'Activo' }
+      const creado = { id: `usr-${Date.now()}`, ...payload, estado: payload.estado || 'Activo' }
+      mockUsuarios.unshift(creado)
+      return { ...creado }
+    },
+    async actualizar(id, payload) {
+      await delay(500)
+      const idx = mockUsuarios.findIndex((u) => u.id === id)
+      if (idx === -1) throw new Error('Usuario no encontrado')
+      mockUsuarios[idx] = { ...mockUsuarios[idx], ...payload }
+      return { ...mockUsuarios[idx] }
     },
   },
   roles: {

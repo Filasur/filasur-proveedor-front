@@ -50,6 +50,8 @@ export const mockProveedores = [
     direccion: 'Av. Industrial 120, Lima',
     estado: 'Aprobado',
     clasificacion: 'A',
+    puntajePromedio: 4.25,
+    evaluaciones: 12,
   },
   {
     id: 'prv-002',
@@ -63,6 +65,8 @@ export const mockProveedores = [
     direccion: 'Calle Los Olivos 45, Arequipa',
     estado: 'En evaluación',
     clasificacion: 'B',
+    puntajePromedio: 3.8,
+    evaluaciones: 5,
   },
   {
     id: 'prv-003',
@@ -76,6 +80,8 @@ export const mockProveedores = [
     direccion: 'Mz. B Lt. 8, Trujillo',
     estado: 'Aprobado',
     clasificacion: 'A',
+    puntajePromedio: 4.6,
+    evaluaciones: 8,
   },
   {
     id: 'prv-004',
@@ -89,6 +95,8 @@ export const mockProveedores = [
     direccion: 'Av. Argentina 500, Callao',
     estado: 'Rechazado',
     clasificacion: 'C',
+    puntajePromedio: 3.2,
+    evaluaciones: 4,
   },
   {
     id: 'prv-005',
@@ -102,6 +110,8 @@ export const mockProveedores = [
     direccion: 'Carretera Norte Km 12, Piura',
     estado: 'Activo',
     clasificacion: 'B',
+    puntajePromedio: 4.1,
+    evaluaciones: 6,
   },
 ]
 
@@ -121,6 +131,15 @@ export const mockCriterios = [
   { id: 'c3', nombre: 'Atención postventa', peso: 20, area: 'Comercial', activo: true },
   { id: 'c4', nombre: 'Precio competitivo', peso: 15, area: 'Costos', activo: true },
   { id: 'c5', nombre: 'Documentación', peso: 10, area: 'Calidad', activo: true },
+]
+
+export const mockUnidades = [
+  { id: 'und-001', codigo: 'UND', nombre: 'Unidad', descripcion: 'Pieza o unidad de venta', activo: true },
+  { id: 'und-002', codigo: 'KG', nombre: 'Kilogramo', descripcion: 'Masa en kilogramos', activo: true },
+  { id: 'und-003', codigo: 'MT', nombre: 'Metro', descripcion: 'Longitud en metros lineales', activo: true },
+  { id: 'und-004', codigo: 'ROLLO', nombre: 'Rollo', descripcion: 'Rollo de material continuo', activo: true },
+  { id: 'und-005', codigo: 'LT', nombre: 'Litro', descripcion: 'Volumen en litros', activo: true },
+  { id: 'und-006', codigo: 'M2', nombre: 'Metro cuadrado', descripcion: 'Superficie en metros cuadrados', activo: false },
 ]
 
 export const mockProductos = [
