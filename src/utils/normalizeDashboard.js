@@ -31,6 +31,8 @@ export function normalizeDashboardResponse(raw) {
       evaluacionesRecientes: [],
       proximasVencer: [],
       chartPorEstado: { ...CHART_DEFAULT },
+      chartLabels: [],
+      chartScores: [],
     }
   }
 
@@ -40,6 +42,8 @@ export function normalizeDashboardResponse(raw) {
       evaluacionesRecientes: raw.evaluacionesRecientes ?? [],
       proximasVencer: raw.proximasVencer ?? [],
       chartPorEstado: { ...CHART_DEFAULT, ...raw.chartPorEstado },
+      chartLabels: raw.chartLabels ?? [],
+      chartScores: raw.chartScores ?? [],
     }
   }
 
@@ -79,5 +83,7 @@ export function normalizeDashboardResponse(raw) {
     evaluacionesRecientes: raw.evaluacionesRecientes ?? raw.EvaluacionesRecientes ?? [],
     proximasVencer: raw.proximasVencer ?? raw.ProximasVencer ?? [],
     chartPorEstado,
+    chartLabels: raw.chartLabels ?? [],
+    chartScores: raw.chartScores ?? [],
   }
 }

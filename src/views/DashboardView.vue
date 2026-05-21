@@ -36,13 +36,16 @@
             <tbody>
               <tr v-for="e in data.evaluacionesRecientes" :key="e.id">
                 <td>{{ e.proveedor }}</td>
-                <td>{{ e.producto }}</td>
-                <td>{{ e.areasPendientes }} área</td>
+                <td>{{ e.producto || '—' }}</td>
+                <td>{{ e.areasPendientes ? `${e.areasPendientes} área` : 'Completa' }}</td>
                 <td><StatusBadge :status="e.estado" /></td>
-                <td>{{ e.fechaLimite }}</td>
+                <td>{{ e.fechaLimite || '—' }}</td>
                 <td>
                   <RouterLink class="link-action" :to="{ name: 'consolidacion', query: { id: e.id } }">Ver</RouterLink>
                 </td>
+              </tr>
+              <tr v-if="!data.evaluacionesRecientes?.length">
+                <td colspan="6" class="empty-state">No hay evaluaciones registradas.</td>
               </tr>
             </tbody>
           </table>
@@ -86,10 +89,13 @@
           <tbody>
             <tr v-for="e in data.proximasVencer" :key="e.id">
               <td>{{ e.proveedor }}</td>
-              <td>{{ e.producto }}</td>
-              <td>{{ e.areasPendientes }} área(s)</td>
-              <td>{{ e.fechaLimite }}</td>
+              <td>{{ e.producto || '—' }}</td>
+              <td>{{ e.areasPendientes ? `${e.areasPendientes} área(s)` : 'Completa' }}</td>
+              <td>{{ e.fechaLimite || '—' }}</td>
               <td><StatusBadge :status="e.estado" /></td>
+            </tr>
+            <tr v-if="!data.proximasVencer?.length">
+              <td colspan="5" class="empty-state">No hay evaluaciones próximas a vencer.</td>
             </tr>
           </tbody>
         </table>

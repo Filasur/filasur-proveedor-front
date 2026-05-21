@@ -46,18 +46,16 @@
       </div>
       <div>
         <LabelHint label="Categoría" hint="Grupo o familia del material." />
-        <input
-          v-model="form.categoria"
-          required
-          list="categorias-list"
-          placeholder="Ej. Embalaje"
-        />
-        <datalist id="categorias-list">
-          <option v-for="c in categoriasSugeridas" :key="c" :value="c" />
-        </datalist>
+        <select v-model="form.categoria" required>
+          <option value="">Seleccione</option>
+          <option v-for="c in categoriasParaSelect" :key="c" :value="c">{{ c }}</option>
+        </select>
       </div>
       <div>
-        <LabelHint label="Unidad" hint="Unidad de medida del catálogo de unidades." />
+        <LabelHint
+          label="Unidad"
+          hint="Unidades registradas en Catálogos → Unidades. Elija una de la lista."
+        />
         <select v-model="form.unidad" required>
           <option value="">Seleccione</option>
           <option v-for="u in unidadesParaSelect" :key="u.id" :value="u.codigo">
@@ -66,7 +64,7 @@
         </select>
       </div>
       <div class="actions full">
-        <button class="btn btn-primary" type="submit" :disabled="!unidadesParaSelect.length">
+        <button class="btn btn-primary" type="submit" :disabled="!unidadesActivas.length">
           {{ editandoId ? 'Actualizar material' : 'Guardar material' }}
         </button>
       </div>
@@ -121,6 +119,8 @@ const unidades = ref([])
 const busqueda = ref('')
 const mostrarForm = ref(false)
 const editandoId = ref(null)
+const CATEGORIAS_BASE = ['Embalaje', 'Insumo', 'Materia prima', 'Químico', 'Servicio', 'Textil']
+
 const form = reactive({ codigo: '', nombre: '', categoria: '', unidad: '' })
 
 const filtrados = computed(() => {
@@ -142,31 +142,44 @@ const unidadesParaSelect = computed(() => {
   return activas
 })
 
-const categoriasSugeridas = computed(() => {
-  const set = new Set(productos.value.map((p) => p.categoria))
-  return [...set].sort()
+const categoriasParaSelect = computed(() => {
+  const set = new Set(CATEGORIAS_BASE)
+  productos.value.forEach((p) => {
+    const c = p.categoria?.trim()
+    if (c) set.add(c)
+  })
+  const actual = form.categoria?.trim()
+  if (actual) set.add(actual)
+  return [...set].sort((a, b) => a.localeCompare(b, 'es'))
 })
 
 onMounted(async () => {
   await cargarDatos()
 })
 
+async function cargarUnidades() {
+  try {
+    unidades.value = await api.unidades.listar()
+  } catch (e) {
+    unidades.value = []
+    toastError(e.message || 'No se pudo cargar el catálogo de unidades.')
+  }
+}
+
 async function cargarDatos() {
-  const [listaProductos, listaUnidades] = await Promise.all([
-    api.productos.listar(),
-    api.unidades.listar(),
-  ])
+  const [listaProductos] = await Promise.all([api.productos.listar(), cargarUnidades()])
   productos.value = listaProductos
-  unidades.value = listaUnidades
 }
 
 function resetForm() {
   editandoId.value = null
+  const primeraUnidad = unidadesActivas.value[0]
+  const primeraCategoria = categoriasParaSelect.value[0] || ''
   Object.assign(form, {
     codigo: '',
     nombre: '',
-    categoria: '',
-    unidad: unidadesActivas.value[0]?.codigo || '',
+    categoria: primeraCategoria,
+    unidad: primeraUnidad?.codigo || '',
   })
 }
 
@@ -175,20 +188,26 @@ function cancelarFormulario() {
   resetForm()
 }
 
-function toggleFormulario() {
+async function toggleFormulario() {
   if (mostrarForm.value) {
     cancelarFormulario()
     return
   }
-  resetForm()
-  if (!unidadesActivas.value.length) {
-    toastError('No hay unidades activas. Regístrelas en Catálogos → Unidades.')
-    return
+  try {
+    await cargarUnidades()
+    if (!unidadesActivas.value.length) {
+      toastError('No hay unidades activas. Regístrelas en Catálogos → Unidades.')
+      return
+    }
+    resetForm()
+    mostrarForm.value = true
+  } catch (e) {
+    toastError(e.message || 'No se pudo abrir el formulario.')
   }
-  mostrarForm.value = true
 }
 
-function editar(producto) {
+async function editar(producto) {
+  await cargarUnidades()
   editandoId.value = producto.id
   Object.assign(form, {
     codigo: producto.codigo,
@@ -201,8 +220,16 @@ function editar(producto) {
 
 async function guardar() {
   const codigo = form.codigo.trim().toUpperCase()
-  if (!form.unidad) {
-    toastError('Seleccione una unidad de medida.')
+  if (!form.categoria) {
+    toastError('Seleccione una categoría.')
+    return
+  }
+  if (!form.unidad || !unidades.value.some((u) => u.codigo === form.unidad)) {
+    toastError('Seleccione una unidad del catálogo (Catálogos → Unidades).')
+    return
+  }
+  if (!unidadesActivas.value.some((u) => u.codigo === form.unidad) && !editandoId.value) {
+    toastError('La unidad seleccionada está inactiva. Active o elija otra en Unidades.')
     return
   }
   try {

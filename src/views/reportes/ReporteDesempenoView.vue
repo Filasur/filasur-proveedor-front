@@ -6,7 +6,7 @@
     <div class="kpi-row">
       <article class="card kpi-mini">
         <span>Puntaje promedio global</span>
-        <strong>{{ resumen?.puntajePromedio ?? '-' }}%</strong>
+        <strong>{{ puntajePromedioPct }}</strong>
       </article>
       <article class="card kpi-mini">
         <span>Evaluaciones finalizadas</span>
@@ -45,7 +45,7 @@
 
       <section class="card">
         <h3 class="section-title">Evolución mensual (puntaje %)</h3>
-        <ul class="mes-list">
+        <ul v-if="meses.length" class="mes-list">
           <li v-for="(mes, i) in meses" :key="mes">
             <span>{{ mes }}</span>
             <div class="mes-bar-wrap">
@@ -54,6 +54,9 @@
             <strong>{{ chartScores[i] }}%</strong>
           </li>
         </ul>
+        <p v-else class="empty-state">
+          Sin evaluaciones finalizadas en los últimos 6 meses para graficar evolución.
+        </p>
       </section>
     </div>
 
@@ -93,6 +96,13 @@ const chartEstados = ref({ labels: [], values: [] })
 const meses = ref([])
 const chartScores = ref([])
 const proveedores = ref([])
+
+/** Puntaje promedio de proveedores está en escala 0-5 → se muestra como % (×20). */
+const puntajePromedioPct = computed(() => {
+  const p = Number(resumen.value?.puntajePromedio)
+  if (!Number.isFinite(p)) return '—'
+  return `${Math.round(p * 20)}%`
+})
 
 const distribucionClase = computed(() => {
   const total = proveedores.value.length || 1

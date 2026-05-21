@@ -10,16 +10,20 @@
       <article class="card kpi-mini"><span>Total</span><strong>{{ stats.total }}</strong></article>
     </div>
 
-    <div class="card toolbar-row">
+    <div class="card toolbar-row reporte-filtros">
       <div class="field">
-        <LabelHint label="Rango de fechas" />
-        <input value="01/04/2025 - 31/05/2025" readonly />
+        <LabelHint label="Desde" hint="Fecha inicial del rango a consultar." />
+        <input v-model="fechaDesde" type="date" @change="cargar" />
+      </div>
+      <div class="field">
+        <LabelHint label="Hasta" hint="Fecha final del rango a consultar." />
+        <input v-model="fechaHasta" type="date" @change="cargar" />
       </div>
       <div class="field">
         <LabelHint label="Producto / Material" />
-        <select v-model="filtroProducto">
+        <select v-model="filtroProducto" @change="cargar">
           <option value="Todos">Todos</option>
-          <option v-for="p in productosUnicos" :key="p" :value="p">{{ p }}</option>
+          <option v-for="p in productosCatalogo" :key="p.id" :value="p.nombre">{{ p.nombre }}</option>
         </select>
       </div>
       <div class="field">
@@ -49,9 +53,9 @@
         <tbody>
           <tr v-for="r in filas" :key="r.id">
             <td>{{ r.proveedor }}</td>
-            <td>{{ r.producto }}</td>
-            <td>{{ r.fechaEvaluacion }}</td>
-            <td>{{ r.puntajeFinal }}</td>
+            <td>{{ r.producto || '—' }}</td>
+            <td>{{ r.fechaEvaluacion || '—' }}</td>
+            <td>{{ r.puntajeFinal ?? '—' }}</td>
             <td><StatusBadge :status="r.estado" /></td>
             <td>
               <RouterLink class="link-action" :to="{ name: 'consolidacion', query: { id: r.id } }">Ver</RouterLink>
@@ -68,36 +72,63 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
-import { confirmAction, toastInfo } from '@/utils/alerts'
+import { confirmAction, toastError, toastInfo } from '@/utils/alerts'
 
 const stats = ref({ total: 0, aprobados: 0, observados: 0, rechazados: 0 })
 const filas = ref([])
-const todasFilas = ref([])
 const filtroEstado = ref('Todos')
 const filtroProducto = ref('Todos')
+const productosCatalogo = ref([])
 
-const productosUnicos = computed(() => {
-  const set = new Set(todasFilas.value.map((f) => f.producto))
-  return [...set].sort()
-})
-
-function aplicarFiltroProducto(lista) {
-  todasFilas.value = lista
-  filas.value =
-    filtroProducto.value === 'Todos' ? lista : lista.filter((f) => f.producto === filtroProducto.value)
+function formatDateInput(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
-watch(filtroProducto, () => aplicarFiltroProducto(todasFilas.value))
+function rangoPorDefecto() {
+  const hasta = new Date()
+  const desde = new Date(hasta.getFullYear(), hasta.getMonth(), 1)
+  return { desde: formatDateInput(desde), hasta: formatDateInput(hasta) }
+}
+
+const defecto = rangoPorDefecto()
+const fechaDesde = ref(defecto.desde)
+const fechaHasta = ref(defecto.hasta)
+
+function paramsReporte() {
+  const p = {
+    fechaDesde: fechaDesde.value,
+    fechaHasta: fechaHasta.value,
+  }
+  if (filtroEstado.value !== 'Todos') p.estado = filtroEstado.value
+  if (filtroProducto.value !== 'Todos') p.producto = filtroProducto.value
+  return p
+}
 
 async function cargar() {
-  const data = await api.reportes.listar({ estado: filtroEstado.value })
-  stats.value = data
-  aplicarFiltroProducto(data.filas)
+  if (fechaDesde.value && fechaHasta.value && fechaDesde.value > fechaHasta.value) {
+    toastError('La fecha «Desde» no puede ser mayor que «Hasta».')
+    return
+  }
+  try {
+    const data = await api.reportes.listar(paramsReporte())
+    stats.value = {
+      total: data.total ?? 0,
+      aprobados: data.aprobados ?? 0,
+      observados: data.observados ?? 0,
+      rechazados: data.rechazados ?? 0,
+    }
+    filas.value = data.filas ?? []
+  } catch (e) {
+    toastError(e.message || 'No se pudo cargar el reporte.')
+  }
 }
 
 async function exportar() {
@@ -111,5 +142,19 @@ async function exportar() {
   toastInfo('Exportación PDF/Excel disponible cuando se conecte el backend.')
 }
 
-onMounted(cargar)
+onMounted(async () => {
+  try {
+    productosCatalogo.value = await api.productos.listar()
+  } catch {
+    productosCatalogo.value = []
+  }
+  await cargar()
+})
 </script>
+
+<style scoped>
+.reporte-filtros {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+</style>
