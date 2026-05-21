@@ -1,7 +1,7 @@
 <template>
   <aside class="sidebar">
     <div class="brand">
-      <span class="brand-mark">F</span>
+      <img src="/favicon.svg" alt="FILASUR" class="brand-logo" width="40" height="40" />
       <div>
         <strong>FILASUR</strong>
         <small>Gestión Proveedores</small>
@@ -184,14 +184,14 @@ watch(() => route.name, expandActiveModule, { immediate: true })
   margin-bottom: 8px;
 }
 
-.brand-mark {
+.brand-logo {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: var(--filasur-sidebar-active);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 4px;
 }
 
 .brand small {

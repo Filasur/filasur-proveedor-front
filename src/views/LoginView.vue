@@ -30,7 +30,6 @@
       <button class="btn btn-primary" type="submit" :disabled="auth.loading">
         {{ auth.loading ? 'Ingresando...' : 'Iniciar sesión' }}
       </button>
-      <p class="hint">Modo mock activo: use las credenciales del archivo .env</p>
     </form>
   </div>
 </template>
