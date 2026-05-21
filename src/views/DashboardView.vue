@@ -114,12 +114,12 @@ const chartRef = ref(null)
 let chartInstance = null
 
 const kpis = computed(() => {
-  if (!data.value) return []
+  if (!data.value?.resumen) return []
   const r = data.value.resumen
   return [
     {
       label: 'Proveedores registrados',
-      value: r.proveedoresRegistrados,
+      value: r.proveedoresRegistrados ?? 0,
       hint: 'Total proveedores activos',
       tooltip: 'Cantidad de proveedores dados de alta en el sistema.',
       icon: '👥',
@@ -127,7 +127,7 @@ const kpis = computed(() => {
     },
     {
       label: 'Evaluaciones en proceso',
-      value: r.evaluacionesEnProceso,
+      value: r.evaluacionesEnProceso ?? 0,
       hint: 'En evaluación actualmente',
       tooltip: 'Evaluaciones que aún no han sido consolidadas o cerradas.',
       icon: '⏱',
@@ -135,7 +135,7 @@ const kpis = computed(() => {
     },
     {
       label: 'Evaluaciones finalizadas',
-      value: r.evaluacionesFinalizadas,
+      value: r.evaluacionesFinalizadas ?? 0,
       hint: 'En los últimos 30 días',
       tooltip: 'Evaluaciones completadas en el último mes.',
       icon: '✓',
@@ -143,7 +143,7 @@ const kpis = computed(() => {
     },
     {
       label: 'Proveedores aprobados',
-      value: r.proveedoresAprobados,
+      value: r.proveedoresAprobados ?? 0,
       hint: 'Listos para registrar en ERP',
       tooltip: 'Proveedores con resultado APROBADO y habilitados para integración ERP.',
       icon: '★',
@@ -153,7 +153,7 @@ const kpis = computed(() => {
 })
 
 function renderChart() {
-  if (!chartRef.value || !data.value) return
+  if (!chartRef.value || !data.value?.chartPorEstado) return
   chartInstance?.destroy()
   const c = data.value.chartPorEstado
   chartInstance = new Chart(chartRef.value, {

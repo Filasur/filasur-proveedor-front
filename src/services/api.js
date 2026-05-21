@@ -1,7 +1,20 @@
 import { mockApi } from '@/mocks'
+import { normalizeDashboardResponse } from '@/utils/normalizeDashboard'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 const baseUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
+
+/** Respuesta estándar del back: { success, message, data } */
+function unwrapApiPayload(body) {
+  if (body == null || typeof body !== 'object') return body
+  if (Object.prototype.hasOwnProperty.call(body, 'data')) {
+    if (body.success === false) {
+      throw new Error(body.message || 'Error en la operación')
+    }
+    return body.data
+  }
+  return body
+}
 
 async function request(path, options = {}) {
   const headers = {
@@ -12,12 +25,17 @@ async function request(path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${baseUrl}${path}`, { ...options, headers })
+  const body = await res.json().catch(() => ({}))
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || `Error HTTP ${res.status}`)
+    const msg =
+      body?.message ||
+      (typeof body?.data === 'string' ? body.data : null) ||
+      `Error HTTP ${res.status}`
+    throw new Error(msg)
   }
   if (res.status === 204) return null
-  return res.json()
+  return unwrapApiPayload(body)
 }
 
 const realApi = {
@@ -25,7 +43,7 @@ const realApi = {
     login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   },
   dashboard: {
-    getResumen: () => request('/dashboard/resumen'),
+    getResumen: async () => normalizeDashboardResponse(await request('/dashboard/resumen')),
   },
   proveedores: {
     listar: () => request('/proveedores'),
