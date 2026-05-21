@@ -111,6 +111,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import { normalizarUnidades } from '@/utils/unidad'
 
 const unidades = ref([])
 const busqueda = ref('')
@@ -130,7 +131,12 @@ const filtradas = computed(() => {
 })
 
 onMounted(async () => {
-  unidades.value = await api.unidades.listar()
+  try {
+    unidades.value = normalizarUnidades(await api.unidades.listar())
+  } catch (e) {
+    unidades.value = []
+    toastError(e.message || 'No se pudo cargar las unidades.')
+  }
 })
 
 function resetForm() {
@@ -186,7 +192,7 @@ async function guardar() {
         nombre: form.nombre.trim(),
         descripcion: form.descripcion.trim(),
       })
-      unidades.value = await api.unidades.listar()
+      unidades.value = normalizarUnidades(await api.unidades.listar())
       toastSuccess('Unidad registrada correctamente.')
     }
     cancelarFormulario()

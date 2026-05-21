@@ -54,14 +54,28 @@
       <div>
         <LabelHint
           label="Unidad"
-          hint="Unidades registradas en Catálogos → Unidades. Elija una de la lista."
+          hint="Mismo catálogo que Unidades de medida. Las inactivas aparecen pero no se pueden usar en materiales nuevos."
         />
-        <select v-model="form.unidad" required>
-          <option value="">Seleccione</option>
-          <option v-for="u in unidadesParaSelect" :key="u.id" :value="u.codigo">
-            {{ u.codigo }} — {{ u.nombre }}{{ u.activo ? '' : ' (inactiva)' }}
+        <select v-model="form.unidad" required :disabled="!unidadesCatalogo.length">
+          <option value="">
+            {{
+              unidadesCatalogo.length
+                ? 'Seleccione unidad'
+                : 'Sin unidades — créelas en Catálogos → Unidades'
+            }}
+          </option>
+          <option
+            v-for="u in unidadesCatalogo"
+            :key="u.id"
+            :value="u.codigo"
+            :disabled="!editandoId && !esUnidadActiva(u)"
+          >
+            {{ etiquetaUnidad(u) }}
           </option>
         </select>
+        <p v-if="unidadesCatalogo.length && !unidadesActivas.length" class="field-hint warn">
+          Hay unidades en el catálogo, pero ninguna está activa. Active al menos una en Unidades.
+        </p>
       </div>
       <div class="actions full">
         <button class="btn btn-primary" type="submit" :disabled="!unidadesActivas.length">
@@ -94,7 +108,7 @@
               <td>{{ p.codigo }}</td>
               <td>{{ p.nombre }}</td>
               <td>{{ p.categoria }}</td>
-              <td>{{ p.unidad }}</td>
+              <td>{{ textoUnidad(p.unidad) }}</td>
               <td>
                 <button type="button" class="link-action" @click="editar(p)">Editar</button>
               </td>
@@ -108,11 +122,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import {
+  esUnidadActiva,
+  etiquetaUnidad,
+  normalizarUnidades,
+  unidadPorCodigo,
+} from '@/utils/unidad'
 
 const productos = ref([])
 const unidades = ref([])
@@ -130,17 +150,17 @@ const filtrados = computed(() => {
   )
 })
 
-const unidadesActivas = computed(() => unidades.value.filter((u) => u.activo))
+const unidadesActivas = computed(() => unidades.value.filter(esUnidadActiva))
 
-const unidadesParaSelect = computed(() => {
-  if (!editandoId.value) return unidadesActivas.value
-  const actual = unidades.value.find((u) => u.codigo === form.unidad)
-  const activas = unidadesActivas.value
-  if (actual && !activas.some((u) => u.id === actual.id)) {
-    return [actual, ...activas]
-  }
-  return activas
-})
+/** Mismo listado completo que la tabla en Catálogos → Unidades (orden por código). */
+const unidadesCatalogo = computed(() =>
+  [...unidades.value].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es'))
+)
+
+function textoUnidad(codigo) {
+  const u = unidadPorCodigo(unidades.value, codigo)
+  return u ? etiquetaUnidad(u) : codigo || '—'
+}
 
 const categoriasParaSelect = computed(() => {
   const set = new Set(CATEGORIAS_BASE)
@@ -153,22 +173,33 @@ const categoriasParaSelect = computed(() => {
   return [...set].sort((a, b) => a.localeCompare(b, 'es'))
 })
 
-onMounted(async () => {
-  await cargarDatos()
+onMounted(() => cargarDatos())
+onActivated(async () => {
+  try {
+    await cargarUnidades()
+  } catch {
+    /* al volver de Unidades sin conexión, no bloquear la tabla de productos */
+  }
 })
 
 async function cargarUnidades() {
-  try {
-    unidades.value = await api.unidades.listar()
-  } catch (e) {
-    unidades.value = []
-    toastError(e.message || 'No se pudo cargar el catálogo de unidades.')
+  const lista = await api.unidades.listar()
+  const normalizadas = normalizarUnidades(lista)
+  if (!normalizadas.length) {
+    throw new Error('No hay unidades en el catálogo. Regístrelas en Catálogos → Unidades.')
   }
+  unidades.value = normalizadas
 }
 
 async function cargarDatos() {
-  const [listaProductos] = await Promise.all([api.productos.listar(), cargarUnidades()])
-  productos.value = listaProductos
+  try {
+    const [listaProductos] = await Promise.all([api.productos.listar(), cargarUnidades()])
+    productos.value = listaProductos
+  } catch (e) {
+    productos.value = await api.productos.listar().catch(() => [])
+    unidades.value = []
+    toastError(e.message || 'No se pudieron cargar productos o unidades.')
+  }
 }
 
 function resetForm() {
@@ -196,18 +227,24 @@ async function toggleFormulario() {
   try {
     await cargarUnidades()
     if (!unidadesActivas.value.length) {
-      toastError('No hay unidades activas. Regístrelas en Catálogos → Unidades.')
+      toastError('No hay unidades activas. Active o cree unidades en Catálogos → Unidades.')
       return
     }
     resetForm()
     mostrarForm.value = true
   } catch (e) {
-    toastError(e.message || 'No se pudo abrir el formulario.')
+    unidades.value = []
+    toastError(e.message || 'No se pudo cargar el catálogo de unidades.')
   }
 }
 
 async function editar(producto) {
-  await cargarUnidades()
+  try {
+    await cargarUnidades()
+  } catch (e) {
+    toastError(e.message || 'No se pudo cargar el catálogo de unidades.')
+    return
+  }
   editandoId.value = producto.id
   Object.assign(form, {
     codigo: producto.codigo,
@@ -224,11 +261,12 @@ async function guardar() {
     toastError('Seleccione una categoría.')
     return
   }
-  if (!form.unidad || !unidades.value.some((u) => u.codigo === form.unidad)) {
+  const unidadSel = unidadPorCodigo(unidades.value, form.unidad)
+  if (!unidadSel) {
     toastError('Seleccione una unidad del catálogo (Catálogos → Unidades).')
     return
   }
-  if (!unidadesActivas.value.some((u) => u.codigo === form.unidad) && !editandoId.value) {
+  if (!esUnidadActiva(unidadSel) && !editandoId.value) {
     toastError('La unidad seleccionada está inactiva. Active o elija otra en Unidades.')
     return
   }
@@ -291,5 +329,10 @@ async function guardar() {
 input[readonly] {
   background: #f5f5f5;
   color: var(--filasur-muted);
+}
+.field-hint.warn {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--filasur-danger);
 }
 </style>
