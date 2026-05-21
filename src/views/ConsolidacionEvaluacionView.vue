@@ -24,6 +24,7 @@
 
     <div v-if="store.loading" class="card empty-state">Cargando consolidación...</div>
     <template v-else-if="c">
+      <div class="consolidacion-stack">
       <header class="card eval-header">
         <h3>Evaluación: {{ c.producto }}</h3>
         <p>Orden de compra: {{ c.ordenCompra }}</p>
@@ -46,11 +47,14 @@
           <tbody>
             <tr v-for="row in c.areas" :key="row.area">
               <td>{{ row.area }}</td>
-              <td>{{ row.evaluador }}</td>
+              <td>{{ row.evaluador || '—' }}</td>
               <td>{{ row.puntaje }}</td>
               <td>{{ row.peso }}%</td>
-              <td>{{ row.ponderado.toFixed(2) }}</td>
-              <td>{{ row.observaciones }}</td>
+              <td>{{ Number(row.ponderado ?? 0).toFixed(2) }}</td>
+              <td>{{ row.observaciones || '—' }}</td>
+            </tr>
+            <tr v-if="!c.areas?.length">
+              <td colspan="6" class="empty-state">Sin resultados por área para esta evaluación.</td>
             </tr>
           </tbody>
         </table>
@@ -62,23 +66,34 @@
             Puntaje final
           </span>
           <strong class="result-value">{{ c.puntajeFinal }} / {{ c.puntajeMax }}</strong>
-          <div class="stars">★★★★☆</div>
+          <div
+            class="stars"
+            :aria-label="`Calificación ${c.puntajeFinal ?? 0} de ${c.puntajeMax ?? 5}`"
+          >
+            <span
+              v-for="i in totalEstrellas"
+              :key="i"
+              class="star"
+              :class="{ filled: i <= estrellasLlenas }"
+            >★</span>
+          </div>
         </article>
         <article class="card result-box" :class="resultClass">
           <span>Resultado</span>
           <strong>{{ c.nivel }}</strong>
-          <p>{{ c.resultado }}</p>
+          <p>{{ textoResultado }}</p>
         </article>
         <div class="result-actions">
           <button type="button" class="btn btn-primary" @click="aprobar">Aprobar proveedor</button>
           <button type="button" class="btn btn-sesion" @click="rechazar">Rechazar</button>
-          <button type="button" class="btn btn-ghost" disabled>Registrar en ERP</button>
+          <!-- <button type="button" class="btn btn-ghost" disabled>Registrar en ERP</button> -->
         </div>
       </section>
 
       <section class="card">
         <p class="obs"><strong>Observaciones generales:</strong> {{ c.observaciones }}</p>
       </section>
+      </div>
     </template>
   </div>
 </template>
@@ -95,8 +110,13 @@ import AppTooltip from '@/components/ui/AppTooltip.vue'
 
 const route = useRoute()
 const store = useEvaluacionStore()
-const evalId = ref(route.query.id || 'ev-001')
+const evalId = ref('')
 const evalIds = ref([])
+
+function parseEvaluacionId(value) {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
 
 const c = computed(() => store.consolidacion)
 
@@ -107,8 +127,32 @@ const resultClass = computed(() => {
   return 'observed'
 })
 
-function cargar() {
-  store.cargarConsolidacion(evalId.value)
+const textoResultado = computed(() => {
+  const t = c.value?.resultado || ''
+  if (t.includes('Exactus ERP')) return 'Proveedor apto'
+  return t
+})
+
+const totalEstrellas = 5
+
+const estrellasLlenas = computed(() => {
+  const max = Number(c.value?.puntajeMax) || 5
+  const puntaje = Number(c.value?.puntajeFinal)
+  if (!Number.isFinite(puntaje) || puntaje <= 0) return 0
+  return Math.min(totalEstrellas, Math.max(0, Math.round((puntaje / max) * totalEstrellas)))
+})
+
+async function cargar() {
+  const id = parseEvaluacionId(evalId.value)
+  if (!id) {
+    toastError('Seleccione una evaluación válida.')
+    return
+  }
+  try {
+    await store.cargarConsolidacion(id)
+  } catch (e) {
+    toastError(e.message || 'No se pudo cargar la consolidación.')
+  }
 }
 
 async function aprobar() {
@@ -119,8 +163,13 @@ async function aprobar() {
     confirmText: 'Aprobar',
   })
   if (!ok) return
+  const id = parseEvaluacionId(evalId.value)
+  if (!id) {
+    toastError('Seleccione una evaluación válida.')
+    return
+  }
   try {
-    await api.evaluaciones.aprobar(evalId.value)
+    await api.evaluaciones.aprobar(id)
     toastSuccess('Proveedor aprobado correctamente.')
     cargar()
   } catch (e) {
@@ -137,8 +186,13 @@ async function rechazar() {
     danger: true,
   })
   if (!ok) return
+  const id = parseEvaluacionId(evalId.value)
+  if (!id) {
+    toastError('Seleccione una evaluación válida.')
+    return
+  }
   try {
-    await api.evaluaciones.rechazar(evalId.value)
+    await api.evaluaciones.rechazar(id)
     toastSuccess('Proveedor rechazado.')
     cargar()
   } catch (e) {
@@ -147,21 +201,45 @@ async function rechazar() {
 }
 
 onMounted(async () => {
-  evalIds.value = await api.evaluaciones.listar()
-  cargar()
+  try {
+    evalIds.value = await api.evaluaciones.listar()
+    const desdeQuery = parseEvaluacionId(route.query.id)
+    if (desdeQuery) {
+      evalId.value = desdeQuery
+    } else if (evalIds.value.length) {
+      evalId.value = evalIds.value[0].id
+    }
+    if (evalId.value) cargar()
+  } catch (e) {
+    toastError(e.message || 'No se pudo cargar el listado de evaluaciones.')
+  }
 })
 </script>
 
 <style scoped>
 .breadcrumbs { margin-bottom: 16px; font-size: 14px; color: var(--filasur-muted); }
 .breadcrumbs a { color: var(--filasur-primary); }
+
+.consolidacion-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.consolidacion-stack > .card h3,
+.consolidacion-stack > section.card > h3 {
+  margin: 0 0 12px;
+}
+
 .eval-header h3 { margin: 0 0 8px; }
-.eval-header p { margin: 0; color: var(--filasur-muted); font-size: 14px; }
+.eval-header p { margin: 0 0 4px; color: var(--filasur-muted); font-size: 14px; }
+.eval-header p:last-child { margin-bottom: 0; }
+
 .result-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 16px;
-  margin: 16px 0;
+  margin: 0;
   align-items: stretch;
 }
 .result-score {
@@ -184,10 +262,17 @@ onMounted(async () => {
   margin: 4px 0 0;
 }
 .stars {
-  display: block;
-  color: #faad14;
+  display: flex;
+  gap: 2px;
   margin-top: 4px;
   font-size: 18px;
+  line-height: 1;
+}
+.star {
+  color: #d9d9d9;
+}
+.star.filled {
+  color: #faad14;
 }
 .result-box strong { font-size: 22px; display: block; margin: 8px 0; }
 .result-box.approved { border-color: var(--filasur-success); background: #f6ffed; }

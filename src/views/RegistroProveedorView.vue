@@ -18,10 +18,11 @@
           label="Tipo proveedor"
           hint="Indica si suministra materia prima, servicios o ambos."
         />
-        <select id="tipo" v-model="form.tipoProveedor" required>
-          <option value="Materia prima">Materia prima</option>
-          <option value="Servicio">Servicio</option>
-          <option value="Mixto">Mixto</option>
+        <select id="tipo" v-model="form.idTipoProveedor" required>
+          <option value="" disabled>Seleccionar tipo</option>
+          <option :value="1">Materia prima</option>
+          <option :value="2">Servicio</option>
+          <option :value="3">Mixto</option>
         </select>
       </div>
       <div>
@@ -41,7 +42,16 @@
           label="Documentos"
           hint="Fichas técnicas, certificados u otros PDF."
         />
-        <input type="file" multiple disabled />
+        <input
+          id="documentos"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          @change="onArchivosChange"
+        />
+        <p v-if="archivos.length" class="archivos-hint">
+          {{ archivos.length }} archivo(s) seleccionado(s)
+        </p>
       </div>
       <div>
         <LabelHint for-id="contacto" label="Contacto" hint="Persona de referencia en la empresa." />
@@ -62,6 +72,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { toastError, toastSuccess } from '@/utils/alerts'
 import LabelHint from '@/components/ui/LabelHint.vue'
@@ -69,7 +80,7 @@ import LabelHint from '@/components/ui/LabelHint.vue'
 const form = reactive({
   ruc: '',
   razonSocial: '',
-  tipoProveedor: 'Materia prima',
+  idTipoProveedor: '',
   rubro: '',
   contacto: '',
   telefono: '',
@@ -77,17 +88,32 @@ const form = reactive({
   direccion: '',
 })
 
+const router = useRouter()
 const loading = ref(false)
+const archivos = ref([])
+
+function onArchivosChange(event) {
+  archivos.value = Array.from(event.target.files || [])
+}
 
 async function onSubmit() {
+  if (form.idTipoProveedor === '' || form.idTipoProveedor == null) {
+    toastError('Seleccione el tipo de proveedor.')
+    return
+  }
   loading.value = true
   try {
-    await api.proveedores.registrar({ ...form })
-    toastSuccess('Proveedor registrado correctamente.')
-    Object.assign(form, {
-      ruc: '', razonSocial: '', tipoProveedor: 'Materia prima', rubro: '',
-      contacto: '', telefono: '', correo: '', direccion: '',
+    const { idTipoProveedor, ...resto } = form
+    const resultado = await api.proveedores.registrar({
+      ...resto,
+      idTipoProveedor: Number(idTipoProveedor),
     })
+    const idProveedor = resultado?.id
+    if (idProveedor && archivos.value.length) {
+      await api.proveedores.subirDocumentos(idProveedor, archivos.value)
+    }
+    toastSuccess('Proveedor registrado correctamente.')
+    router.push({ name: 'proveedores' })
   } catch (e) {
     toastError(e.message)
   } finally {
@@ -104,5 +130,11 @@ async function onSubmit() {
 .actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.archivos-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--filasur-muted);
 }
 </style>

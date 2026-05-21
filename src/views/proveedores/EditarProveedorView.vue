@@ -21,11 +21,16 @@
         <input id="razon" v-model="form.razonSocial" required />
       </div>
       <div>
-        <LabelHint for-id="tipo" label="Tipo proveedor" hint="Materia prima, servicio o mixto." />
-        <select id="tipo" v-model="form.tipoProveedor" required>
-          <option value="Materia prima">Materia prima</option>
-          <option value="Servicio">Servicio</option>
-          <option value="Mixto">Mixto</option>
+        <LabelHint
+          for-id="tipo"
+          label="Tipo proveedor"
+          hint="Indica si suministra materia prima, servicios o ambos."
+        />
+        <select id="tipo" v-model="form.idTipoProveedor" required>
+          <option value="" disabled>Seleccionar tipo</option>
+          <option :value="1">Materia prima</option>
+          <option :value="2">Servicio</option>
+          <option :value="3">Mixto</option>
         </select>
       </div>
       <div>
@@ -58,10 +63,11 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import { idTipoProveedorDesdeNombre } from '@/utils/tipoProveedor'
 import LabelHint from '@/components/ui/LabelHint.vue'
 
 const route = useRoute()
@@ -74,7 +80,7 @@ onMounted(async () => {
   form.value = {
     ruc: p.ruc,
     razonSocial: p.razonSocial,
-    tipoProveedor: p.tipoProveedor,
+    idTipoProveedor: p.idTipoProveedor ?? idTipoProveedorDesdeNombre(p.tipoProveedor),
     rubro: p.rubro,
     contacto: p.contacto,
     telefono: p.telefono,
@@ -84,9 +90,17 @@ onMounted(async () => {
 })
 
 async function onSubmit() {
+  if (form.value.idTipoProveedor === '' || form.value.idTipoProveedor == null) {
+    toastError('Seleccione el tipo de proveedor.')
+    return
+  }
   loading.value = true
   try {
-    await api.proveedores.actualizar(route.params.id, { ...form.value })
+    const { ruc, ...datos } = form.value
+    await api.proveedores.actualizar(route.params.id, {
+      ...datos,
+      idTipoProveedor: Number(datos.idTipoProveedor),
+    })
     toastSuccess('Proveedor actualizado correctamente.')
     setTimeout(() => router.push({ name: 'detalle-proveedor', params: { id: route.params.id } }), 600)
   } catch (e) {

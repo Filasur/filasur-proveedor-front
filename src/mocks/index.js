@@ -81,9 +81,10 @@ export const mockApi = {
       await delay(500)
       return { ok: true, id: 'borrador-001', ...payload }
     },
-    async consolidacion(id = 'ev-2026-001') {
+    async consolidacion(id = 1) {
       await delay()
-      const ev = mockEvaluaciones.find((e) => e.id === id)
+      const numId = Number(id)
+      const ev = mockEvaluaciones.find((e) => e.id === numId || e.id === id)
       return {
         ...mockConsolidacion,
         id,

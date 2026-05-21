@@ -25,6 +25,25 @@
           />
           <input v-model="form.periodo" placeholder="Ej. 2026-Q2" />
         </div>
+        <div>
+          <LabelHint
+            label="Producto / Material"
+            hint="Material o insumo evaluado (catálogo de productos)."
+          />
+          <select v-model="form.idProducto">
+            <option value="">Sin especificar</option>
+            <option v-for="p in productos" :key="p.id" :value="p.id">
+              {{ p.nombre }} ({{ p.codigo }})
+            </option>
+          </select>
+        </div>
+        <div>
+          <LabelHint
+            label="Orden de compra"
+            hint="Código de la OC asociada a esta evaluación (opcional)."
+          />
+          <input v-model="form.ordenCompra" placeholder="Ej. OC-2026-01562" />
+        </div>
       </div>
 
       <div v-else-if="step === 1">
@@ -73,7 +92,9 @@
         <ul class="resumen">
           <li><strong>Proveedor:</strong> {{ proveedorLabel }}</li>
           <li><strong>Periodo:</strong> {{ form.periodo }}</li>
-          <li><strong>Criterios evaluados:</strong> {{ criteriosActivos.length }} (todos)</li>
+          <li><strong>Producto:</strong> {{ productoLabel }}</li>
+          <li><strong>Orden de compra:</strong> {{ form.ordenCompra || '—' }}</li>
+          <li><strong>Criterios evaluados:</strong> {{ criteriosActivos.length }}</li>
           <li><strong>Puntaje estimado:</strong> {{ puntajeEstimado }}%</li>
         </ul>
         <table class="data-table resumen-tabla">
@@ -134,6 +155,7 @@ import AppTooltip from '@/components/ui/AppTooltip.vue'
 const steps = ['Datos generales', 'Puntajes', 'Confirmación']
 const step = ref(0)
 const proveedores = ref([])
+const productos = ref([])
 const criterios = ref([])
 const puntajes = reactive({})
 const erroresPuntaje = reactive({})
@@ -147,6 +169,8 @@ const router = useRouter()
 const form = reactive({
   proveedorId: '',
   periodo: '',
+  idProducto: '',
+  ordenCompra: '',
   criterios: [],
   observaciones: '',
 })
@@ -159,6 +183,11 @@ const criteriosActivos = computed(() =>
 const proveedorLabel = computed(
   () => proveedores.value.find((p) => p.id === form.proveedorId)?.razonSocial || '-',
 )
+
+const productoLabel = computed(() => {
+  const p = productos.value.find((x) => x.id === Number(form.idProducto))
+  return p ? `${p.nombre} (${p.codigo})` : '—'
+})
 
 const puntajeEstimado = computed(() => {
   const lista = criteriosActivos.value
@@ -248,25 +277,35 @@ function onSiguiente() {
 }
 
 onMounted(async () => {
-  ;[proveedores.value, criterios.value] = await Promise.all([
-    api.proveedores.listar(),
-    api.evaluaciones.listarCriterios(),
-  ])
-  sincronizarCriterios()
+  try {
+    ;[proveedores.value, productos.value, criterios.value] = await Promise.all([
+      api.proveedores.listar(),
+      api.productos.listar(),
+      api.evaluaciones.listarCriterios(),
+    ])
+    sincronizarCriterios()
+  } catch (e) {
+    toastError(e.message || 'No se pudieron cargar proveedores o criterios.')
+  }
 })
 
 async function guardar() {
   sincronizarCriterios()
   saving.value = true
   try {
-    await evalStore.guardarBorrador({
+    const resultado = await evalStore.guardarBorrador({
       ...form,
       puntajes: { ...puntajes },
-      puntajeEstimado: puntajeEstimado.value,
+      finalizar: true,
     })
     toastSuccess('Evaluación guardada. Puede revisar la consolidación.')
     evalStore.resetBorrador()
-    router.push({ name: 'consolidacion' })
+    const id = resultado?.id
+    router.push(
+      id
+        ? { name: 'consolidacion', query: { id } }
+        : { name: 'consolidacion' },
+    )
   } catch (e) {
     toastError(e.message || 'No se pudo guardar la evaluación.')
   } finally {

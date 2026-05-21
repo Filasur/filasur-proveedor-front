@@ -18,14 +18,14 @@ export const mockDashboard = {
     proveedoresActivos: 58,
   },
   evaluacionesRecientes: [
-    { id: 'ev-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', areasPendientes: 1, estado: 'En proceso', fechaLimite: '20/05/2025' },
-    { id: 'ev-002', proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', areasPendientes: 2, estado: 'En evaluación', fechaLimite: '22/05/2025' },
-    { id: 'ev-003', proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', areasPendientes: 0, estado: 'Finalizada', fechaLimite: '18/05/2025' },
-    { id: 'ev-004', proveedor: 'Empaques del Perú S.A.C.', producto: 'Hilo Algodón 30/1', areasPendientes: 3, estado: 'En proceso', fechaLimite: '25/05/2025' },
+    { id: 1, proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', areasPendientes: 1, estado: 'En proceso', fechaLimite: '20/05/2025' },
+    { id: 2, proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', areasPendientes: 2, estado: 'En evaluación', fechaLimite: '22/05/2025' },
+    { id: 3, proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', areasPendientes: 0, estado: 'Finalizada', fechaLimite: '18/05/2025' },
+    { id: 4, proveedor: 'Empaques del Perú S.A.C.', producto: 'Hilo Algodón 30/1', areasPendientes: 3, estado: 'En proceso', fechaLimite: '25/05/2025' },
   ],
   proximasVencer: [
-    { id: 'ev-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', areasPendientes: 1, estado: 'En proceso', fechaLimite: '20/05/2025' },
-    { id: 'ev-004', proveedor: 'Empaques del Perú S.A.C.', producto: 'Hilo Algodón 30/1', areasPendientes: 3, estado: 'En proceso', fechaLimite: '25/05/2025' },
+    { id: 1, proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', areasPendientes: 1, estado: 'En proceso', fechaLimite: '20/05/2025' },
+    { id: 4, proveedor: 'Empaques del Perú S.A.C.', producto: 'Hilo Algodón 30/1', areasPendientes: 3, estado: 'En proceso', fechaLimite: '25/05/2025' },
   ],
   chartPorEstado: {
     total: 40,
@@ -116,21 +116,21 @@ export const mockProveedores = [
 ]
 
 export const mockEvaluaciones = [
-  { id: 'ev-001', proveedorId: 'prv-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01562', fechaEvaluacion: '15/05/2025', puntajeFinal: 4.25, estado: 'Aprobado', areasPendientes: 0 },
-  { id: 'ev-002', proveedorId: 'prv-002', proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01540', fechaEvaluacion: '14/05/2025', puntajeFinal: 3.8, estado: 'Observado', areasPendientes: 1 },
-  { id: 'ev-003', proveedorId: 'prv-003', proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01501', fechaEvaluacion: '13/05/2025', puntajeFinal: 4.6, estado: 'Aprobado', areasPendientes: 0 },
-  { id: 'ev-004', proveedorId: 'prv-004', proveedor: 'Empaques del Perú S.A.C.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01488', fechaEvaluacion: '12/05/2025', puntajeFinal: 3.2, estado: 'Rechazado', areasPendientes: 0 },
-  { id: 'ev-005', proveedorId: 'prv-005', proveedor: 'Industrias del Norte S.A.C.', producto: 'Hilo Algodón 30/1', ordenCompra: 'OC-2025-01450', fechaEvaluacion: '10/05/2025', puntajeFinal: 4.1, estado: 'Aprobado', areasPendientes: 0 },
-  { id: 'ev-006', proveedorId: 'prv-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Tela cruda 40"', ordenCompra: 'OC-2025-01600', fechaEvaluacion: null, puntajeFinal: null, estado: 'En proceso', areasPendientes: 2 },
-  { id: 'ev-007', proveedorId: 'prv-002', proveedor: 'Inversiones Globales S.A.', producto: 'Film stretch', ordenCompra: 'OC-2025-01610', fechaEvaluacion: null, puntajeFinal: null, estado: 'En evaluación', areasPendientes: 3 },
+  { id: 1, proveedorId: 'prv-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01562', fechaEvaluacion: '15/05/2025', puntajeFinal: 4.25, estado: 'Aprobado', areasPendientes: 0 },
+  { id: 2, proveedorId: 'prv-002', proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01540', fechaEvaluacion: '14/05/2025', puntajeFinal: 3.8, estado: 'Observado', areasPendientes: 1 },
+  { id: 3, proveedorId: 'prv-003', proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01501', fechaEvaluacion: '13/05/2025', puntajeFinal: 4.6, estado: 'Aprobado', areasPendientes: 0 },
+  { id: 4, proveedorId: 'prv-004', proveedor: 'Empaques del Perú S.A.C.', producto: 'Bolsa PP 50kg', ordenCompra: 'OC-2025-01488', fechaEvaluacion: '12/05/2025', puntajeFinal: 3.2, estado: 'Rechazado', areasPendientes: 0 },
+  { id: 5, proveedorId: 'prv-005', proveedor: 'Industrias del Norte S.A.C.', producto: 'Hilo Algodón 30/1', ordenCompra: 'OC-2025-01450', fechaEvaluacion: '10/05/2025', puntajeFinal: 4.1, estado: 'Aprobado', areasPendientes: 0 },
+  { id: 6, proveedorId: 'prv-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Tela cruda 40"', ordenCompra: 'OC-2025-01600', fechaEvaluacion: null, puntajeFinal: null, estado: 'En proceso', areasPendientes: 2 },
+  { id: 7, proveedorId: 'prv-002', proveedor: 'Inversiones Globales S.A.', producto: 'Film stretch', ordenCompra: 'OC-2025-01610', fechaEvaluacion: null, puntajeFinal: null, estado: 'En evaluación', areasPendientes: 3 },
 ]
 
 export const mockCriterios = [
-  { id: 'c1', nombre: 'Calidad del producto', peso: 30, area: 'Calidad', activo: true },
-  { id: 'c2', nombre: 'Cumplimiento de plazos', peso: 25, area: 'Logística', activo: true },
-  { id: 'c3', nombre: 'Atención postventa', peso: 20, area: 'Comercial', activo: true },
-  { id: 'c4', nombre: 'Precio competitivo', peso: 15, area: 'Costos', activo: true },
-  { id: 'c5', nombre: 'Documentación', peso: 10, area: 'Calidad', activo: true },
+  { id: 1, nombre: 'Calidad del producto', peso: 30, area: 'Calidad', activo: true },
+  { id: 2, nombre: 'Cumplimiento de plazos', peso: 25, area: 'Logística', activo: true },
+  { id: 3, nombre: 'Atención postventa', peso: 20, area: 'Comercial', activo: true },
+  { id: 4, nombre: 'Precio competitivo', peso: 15, area: 'Costos', activo: true },
+  { id: 5, nombre: 'Documentación', peso: 10, area: 'Calidad', activo: true },
 ]
 
 export const mockUnidades = [
@@ -178,11 +178,11 @@ export const mockReportes = {
   observados: 8,
   rechazados: 6,
   filas: [
-    { id: 'ev-001', proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '15/05/2025', puntajeFinal: 4.25, estado: 'Aprobado' },
-    { id: 'ev-002', proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '14/05/2025', puntajeFinal: 3.8, estado: 'Observado' },
-    { id: 'ev-003', proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '13/05/2025', puntajeFinal: 4.6, estado: 'Aprobado' },
-    { id: 'ev-004', proveedor: 'Empaques del Perú S.A.C.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '12/05/2025', puntajeFinal: 3.2, estado: 'Rechazado' },
-    { id: 'ev-005', proveedor: 'Industrias del Norte S.A.C.', producto: 'Hilo Algodón 30/1', fechaEvaluacion: '10/05/2025', puntajeFinal: 4.1, estado: 'Aprobado' },
+    { id: 1, proveedor: 'Textiles del Sur S.A.C.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '15/05/2025', puntajeFinal: 4.25, estado: 'Aprobado' },
+    { id: 2, proveedor: 'Inversiones Globales S.A.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '14/05/2025', puntajeFinal: 3.8, estado: 'Observado' },
+    { id: 3, proveedor: 'Plásticos Nacionales S.A.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '13/05/2025', puntajeFinal: 4.6, estado: 'Aprobado' },
+    { id: 4, proveedor: 'Empaques del Perú S.A.C.', producto: 'Bolsa PP 50kg', fechaEvaluacion: '12/05/2025', puntajeFinal: 3.2, estado: 'Rechazado' },
+    { id: 5, proveedor: 'Industrias del Norte S.A.C.', producto: 'Hilo Algodón 30/1', fechaEvaluacion: '10/05/2025', puntajeFinal: 4.1, estado: 'Aprobado' },
   ],
 }
 
@@ -201,7 +201,7 @@ export const mockRoles = [
 ]
 
 export const mockConsolidacion = {
-  id: 'ev-2026-001',
+  id: 1,
   proveedor: 'Textiles del Sur S.A.C.',
   producto: 'Bolsa PP 50kg',
   ordenCompra: 'OC-2025-01562',
@@ -210,7 +210,7 @@ export const mockConsolidacion = {
   puntajeFinal: 4.25,
   puntajeMax: 5,
   nivel: 'APROBADO',
-  resultado: 'Proveedor apto para registro en Exactus ERP',
+  resultado: 'Proveedor apto',
   areas: [
     { area: 'Calidad', evaluador: 'Carlos Vega', puntaje: 4.5, peso: 30, ponderado: 1.35, observaciones: 'Cumple especificaciones.' },
     { area: 'Producción', evaluador: 'María López', puntaje: 4.0, peso: 25, ponderado: 1.0, observaciones: 'Entregas puntuales.' },

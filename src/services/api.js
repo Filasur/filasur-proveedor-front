@@ -38,6 +38,24 @@ async function request(path, options = {}) {
   return unwrapApiPayload(body)
 }
 
+async function requestForm(path, formData, method = 'POST') {
+  const headers = {}
+  const token = localStorage.getItem('filasur_token')
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${baseUrl}${path}`, { method, headers, body: formData })
+  const body = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    const msg =
+      body?.message ||
+      (typeof body?.data === 'string' ? body.data : null) ||
+      `Error HTTP ${res.status}`
+    throw new Error(msg)
+  }
+  return unwrapApiPayload(body)
+}
+
 const realApi = {
   auth: {
     login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
@@ -50,14 +68,25 @@ const realApi = {
     obtener: (id) => request(`/proveedores/${id}`),
     registrar: (body) => request('/proveedores', { method: 'POST', body: JSON.stringify(body) }),
     actualizar: (id, body) => request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    subirDocumentos: (idProveedor, archivos) => {
+      const form = new FormData()
+      for (const file of archivos) {
+        form.append('archivos', file)
+      }
+      return requestForm(`/proveedores/${idProveedor}/documentos`, form)
+    },
   },
   evaluaciones: {
     listar: (params) => request(`/evaluaciones?${new URLSearchParams(params || {})}`),
     listarCriterios: () => request('/evaluaciones/criterios'),
     guardarBorrador: (body) => request('/evaluaciones/borrador', { method: 'POST', body: JSON.stringify(body) }),
-    consolidacion: (id) => request(`/evaluaciones/${id}/consolidacion`),
-    aprobar: (id) => request(`/evaluaciones/${id}/aprobar`, { method: 'POST' }),
-    rechazar: (id) => request(`/evaluaciones/${id}/rechazar`, { method: 'POST' }),
+    consolidacion: (id) => request(`/evaluaciones/${Number(id)}/consolidacion`),
+    aprobar: (id) => request(`/evaluaciones/${Number(id)}/aprobar`, { method: 'POST' }),
+    rechazar: (id, motivo) =>
+      request(`/evaluaciones/${Number(id)}/rechazar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo: motivo ?? null }),
+      }),
   },
   ranking: {
     listar: () => request('/ranking'),
