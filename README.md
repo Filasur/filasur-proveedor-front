@@ -35,10 +35,12 @@ Configuradas en `.env`:
 | Evaluaciones | `/evaluaciones` | Pendientes |
 | Evaluaciones | `/nueva-evaluacion` | Nueva evaluación |
 | Evaluaciones | `/consolidacion` | Consolidación |
-| Reportes | `/ranking` | Ranking |
-| Reportes | `/historial` | Historial |
-| Reportes | `/reportes` | Reportes |
+| Reportes | `/reportes/evaluaciones` | Reporte de evaluaciones |
+| Reportes | `/reportes/proveedores` | Reporte de proveedores |
+| Reportes | `/reportes/desempeno` | Reporte de desempeño |
+| Reportes | `/bitacora` | Bitácora del sistema |
 | Catálogos | `/criterios` | Criterios |
+| Catálogos | `/unidades` | Unidades de medida |
 | Catálogos | `/productos` | Productos / Materiales |
 | Catálogos | `/documentos` | Documentos |
 | Seguridad | `/usuarios` | Gestión de usuarios |
@@ -51,6 +53,12 @@ Configuradas en `.env`:
 - `VITE_USE_MOCK=false` → API en `VITE_BACKEND_URL`
 
 Para conectar el backend, implemente los endpoints definidos en `src/services/api.js`.
+
+## Alertas y notificaciones
+
+- **Toasts ([Notivue](https://notivue.smastrom.io))**: éxito, error e información tras guardar datos.
+- **Confirmaciones ([SweetAlert2](https://sweetalert2.github.io))**: aprobar/rechazar proveedor, exportar reportes.
+- Utilidades centralizadas en `src/utils/alerts.js`.
 
 ## Scripts
 

@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variables de entorno (VITE_BACKEND_URL, BD, API, tokens)
+.env
+.env.*
+!.env.example
+!.env*.example
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.staging
+.env.test
+
+# Credenciales / cadenas de conexión fuera de .env
+secrets.json
+credentials.json
+connectionstrings.json

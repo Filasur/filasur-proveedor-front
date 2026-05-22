@@ -76,24 +76,38 @@ const routes = [
         meta: { title: 'Consolidación de evaluación' },
       },
 
-      // Ranking y reportes
+      // Reportes
       {
         path: 'ranking',
-        name: 'ranking',
-        component: () => import('@/views/reportes/RankingProveedoresView.vue'),
-        meta: { title: 'Ranking de proveedores' },
+        redirect: { name: 'reporte-proveedores' },
       },
       {
-        path: 'historial',
-        name: 'historial',
+        path: 'bitacora',
+        name: 'bitacora',
         component: () => import('@/views/reportes/HistorialEvaluacionesView.vue'),
-        meta: { title: 'Historial' },
+        meta: { title: 'Bitácora del sistema' },
       },
       {
         path: 'reportes',
-        name: 'reportes',
-        component: () => import('@/views/reportes/ReportesView.vue'),
-        meta: { title: 'Reportes' },
+        redirect: { name: 'reporte-evaluaciones' },
+      },
+      {
+        path: 'reportes/evaluaciones',
+        name: 'reporte-evaluaciones',
+        component: () => import('@/views/reportes/ReporteEvaluacionesView.vue'),
+        meta: { title: 'Reporte de evaluaciones' },
+      },
+      {
+        path: 'reportes/proveedores',
+        name: 'reporte-proveedores',
+        component: () => import('@/views/reportes/ReporteProveedoresView.vue'),
+        meta: { title: 'Reporte de proveedores' },
+      },
+      {
+        path: 'reportes/desempeno',
+        name: 'reporte-desempeno',
+        component: () => import('@/views/reportes/ReporteDesempenoView.vue'),
+        meta: { title: 'Reporte de desempeño' },
       },
 
       // Catálogos
@@ -102,6 +116,12 @@ const routes = [
         name: 'criterios',
         component: () => import('@/views/catalogos/CriteriosView.vue'),
         meta: { title: 'Criterios' },
+      },
+      {
+        path: 'unidades',
+        name: 'unidades',
+        component: () => import('@/views/catalogos/UnidadesView.vue'),
+        meta: { title: 'Unidades de medida' },
       },
       {
         path: 'productos',

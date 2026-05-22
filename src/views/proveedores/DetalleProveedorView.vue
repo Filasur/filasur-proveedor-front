@@ -42,7 +42,15 @@
             <div><dt>Tipo proveedor</dt><dd>{{ proveedor.tipoProveedor }}</dd></div>
             <div><dt>Rubro</dt><dd>{{ proveedor.rubro }}</dd></div>
             <div><dt>Contacto</dt><dd>{{ proveedor.contacto }}</dd></div>
-            <div><dt>Clasificación</dt><dd>{{ proveedor.clasificacion }}</dd></div>
+            <div>
+              <dt class="dt-hint">
+                Clasificación
+                <AppTooltip
+                  text="Nivel de desempeño según evaluaciones históricas: A (mejor), B (medio), C (bajo). Distinto del estado del trámite."
+                />
+              </dt>
+              <dd>{{ proveedor.clasificacion }}</dd>
+            </div>
           </dl>
         </div>
 
@@ -51,10 +59,10 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Producto</th>
-                <th>Orden compra</th>
-                <th>Puntaje</th>
-                <th>Estado</th>
+                <ThHint label="Producto" hint="Material evaluado en el proceso." />
+                <ThHint label="Orden compra" hint="Referencia de la OC asociada." />
+                <ThHint label="Puntaje" hint="Resultado consolidado de la evaluación." />
+                <ThHint label="Estado" hint="En proceso, aprobado, rechazado, etc." />
                 <th>Acción</th>
               </tr>
             </thead>
@@ -76,26 +84,34 @@
           <h3>Documentos</h3>
           <ul class="doc-list">
             <li v-for="d in proveedor.documentos" :key="d.id">
-              <span class="doc-icon">PDF</span>
-              <div>
-                <strong>{{ d.nombre }}</strong>
+              <span class="doc-icon">{{ d.tipo || 'DOC' }}</span>
+              <div class="doc-info">
+                <strong>{{ d.nombre }}</strong> - 
                 <small>{{ d.tipo }} · {{ d.tamano }}</small>
               </div>
+              <button
+                v-if="puedeDescargarDoc(d)"
+                type="button"
+                class="link-action btn-link"
+                @click="onDescargarDoc(d)"
+              >
+                Descargar
+              </button>
             </li>
           </ul>
           <p v-if="!proveedor.documentos?.length" class="empty-state">Sin documentos adjuntos.</p>
         </div>
 
         <div v-if="tab === 'historial'" class="card">
-          <h3>Historial</h3>
+          <h3>Bitácora del proveedor</h3>
           <ul class="timeline">
             <li v-for="h in proveedor.historial" :key="h.id">
               <time>{{ h.fecha }}</time>
-              <strong>{{ h.accion }}</strong>
+              <strong> - {{ h.accion }}</strong>
               <p>{{ h.detalle }}</p>
             </li>
           </ul>
-          <p v-if="!proveedor.historial?.length" class="empty-state">Sin registros de historial.</p>
+          <p v-if="!proveedor.historial?.length" class="empty-state">Sin acciones registradas para este proveedor.</p>
         </div>
       </section>
     </div>
@@ -106,7 +122,23 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
+import { descargarDocumento, puedeDescargarDocumento } from '@/utils/documento'
+import { toastError } from '@/utils/alerts'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+
+function puedeDescargarDoc(doc) {
+  return puedeDescargarDocumento(doc)
+}
+
+async function onDescargarDoc(doc) {
+  try {
+    await descargarDocumento(doc)
+  } catch (e) {
+    toastError(e.message || 'Error al descargar.')
+  }
+}
+import AppTooltip from '@/components/ui/AppTooltip.vue'
+import ThHint from '@/components/ui/ThHint.vue'
 
 const route = useRoute()
 const proveedor = ref(null)
@@ -116,7 +148,7 @@ const tabs = [
   { id: 'info', label: 'Información general' },
   { id: 'evaluaciones', label: 'Evaluaciones' },
   { id: 'documentos', label: 'Documentos' },
-  { id: 'historial', label: 'Historial' },
+  { id: 'historial', label: 'Bitácora' },
 ]
 
 const iniciales = computed(() =>
@@ -129,8 +161,13 @@ const iniciales = computed(() =>
 )
 
 onMounted(async () => {
-  proveedor.value = await api.proveedores.obtener(route.params.id)
-  loading.value = false
+  try {
+    proveedor.value = await api.proveedores.obtener(route.params.id)
+  } catch (e) {
+    toastError(e.message || 'No se pudo cargar el proveedor.')
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -155,9 +192,24 @@ onMounted(async () => {
 .section-head { display: flex; justify-content: space-between; align-items: center; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .info-grid dt { font-size: 12px; color: var(--filasur-muted); }
+.dt-hint { display: inline-flex; align-items: center; gap: 6px; }
 .info-grid dd { margin: 4px 0 0; }
 .doc-list { list-style: none; padding: 0; margin: 0; }
-.doc-list li { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--filasur-border); }
+.doc-list li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--filasur-border);
+}
+.doc-info { flex: 1; min-width: 0; }
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
 .doc-icon { background: #fff2f0; color: #cf1322; padding: 8px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; }
 .timeline { list-style: none; padding: 0; }
 .timeline li { padding: 12px 0; border-bottom: 1px solid var(--filasur-border); }

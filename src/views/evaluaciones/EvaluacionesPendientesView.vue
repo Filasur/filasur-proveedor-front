@@ -5,7 +5,7 @@
         <h2 class="page-title">Evaluaciones pendientes</h2>
         <p class="page-subtitle">Lista de evaluaciones en curso con filtros por estado</p>
       </div>
-      <RouterLink :to="{ name: 'nueva-evaluacion' }" class="btn btn-primary">+ Nueva evaluación</RouterLink>
+      <RouterLink :to="{ name: 'nueva-evaluacion' }" class="btn btn-primary">Nueva evaluación</RouterLink>
     </div>
 
     <div class="card toolbar-row">
@@ -15,6 +15,10 @@
           <option value="">Todos</option>
           <option value="En proceso">En proceso</option>
           <option value="En evaluación">En evaluación</option>
+          <option value="Aprobado">Aprobado</option>
+          <option value="Observado">Observado</option>
+          <option value="Rechazado">Rechazado</option>
+          <option value="Finalizada">Finalizada</option>
         </select>
       </div>
       <div class="field grow">
@@ -38,8 +42,8 @@
         <tbody>
           <tr v-for="e in filtrados" :key="e.id">
             <td>{{ e.proveedor }}</td>
-            <td>{{ e.producto }}</td>
-            <td>{{ e.areasPendientes }} área(s)</td>
+            <td>{{ e.producto || '—' }}</td>
+            <td>{{ etiquetaAreas(e) }}</td>
             <td><StatusBadge :status="e.estado" /></td>
             <td>{{ e.ordenCompra || '-' }}</td>
             <td>
@@ -73,12 +77,12 @@ const filtrados = computed(() => {
   })
 })
 
+function etiquetaAreas(e) {
+  if (!e.areasPendientes) return 'Completa'
+  return `${e.areasPendientes} área(s)`
+}
+
 onMounted(async () => {
-  evaluaciones.value = await api.evaluaciones.listar({ pendientes: true })
+  evaluaciones.value = await api.evaluaciones.listar()
 })
 </script>
-
-<style scoped>
-.page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.page-head .page-subtitle { margin-bottom: 16px; }
-</style>
