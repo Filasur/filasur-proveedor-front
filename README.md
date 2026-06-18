@@ -15,12 +15,9 @@ cp .env.example .env
 npm run dev
 ```
 
-## Credenciales mock
+## Configuración del API
 
-Configuradas en `.env`:
-
-- `VITE_MOCK_USER`
-- `VITE_MOCK_PASSWORD`
+Configura `VITE_BACKEND_URL` en `.env` con la URL base del backend, incluyendo `/api`.
 
 ## Páginas del sistema
 
@@ -47,12 +44,9 @@ Configuradas en `.env`:
 | Seguridad | `/roles` | Gestión de roles |
 | Sistema | `/configuracion` | Configuración |
 
-## Modo mock vs backend
+## Backend
 
-- `VITE_USE_MOCK=true` → datos en `src/mocks/`
-- `VITE_USE_MOCK=false` → API en `VITE_BACKEND_URL`
-
-Para conectar el backend, implemente los endpoints definidos en `src/services/api.js`.
+El frontend consume directamente los endpoints definidos en `src/services/api.js`.
 
 ## Alertas y notificaciones
 

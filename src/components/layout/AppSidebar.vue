@@ -58,25 +58,28 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { ROLE_GROUPS, hasRole } from '@/security/permissions'
 
 const route = useRoute()
+const auth = useAuthStore()
 const expanded = ref(new Set())
 
-const menuGroups = [
+const allMenuGroups = [
   {
     id: 'main',
     collapsible: false,
-    items: [{ name: 'dashboard', label: 'Dashboard' }],
+    items: [{ name: 'dashboard', label: 'Dashboard', roles: ROLE_GROUPS.evaluaciones }],
   },
   {
     id: 'proveedores',
     label: 'Proveedores',
     collapsible: true,
     items: [
-      { name: 'proveedores', label: 'Listado de proveedores' },
-      { name: 'registro-proveedor', label: 'Registrar proveedor' },
+      { name: 'proveedores', label: 'Listado de proveedores', roles: ROLE_GROUPS.proveedores },
+      { name: 'registro-proveedor', label: 'Registrar proveedor', roles: ROLE_GROUPS.proveedores },
     ],
   },
   {
@@ -84,9 +87,9 @@ const menuGroups = [
     label: 'Evaluaciones',
     collapsible: true,
     items: [
-      { name: 'nueva-evaluacion', label: 'Nueva evaluación' },  
-      { name: 'consolidacion', label: 'Consolidación' },
-      { name: 'evaluaciones-pendientes', label: 'Evaluaciones pendientes' },
+      { name: 'nueva-evaluacion', label: 'Nueva evaluación', roles: ROLE_GROUPS.evaluaciones },
+      { name: 'consolidacion', label: 'Consolidación', roles: ROLE_GROUPS.evaluaciones },
+      { name: 'evaluaciones-pendientes', label: 'Evaluaciones pendientes', roles: ROLE_GROUPS.evaluaciones },
     ],
   },
   {
@@ -94,10 +97,10 @@ const menuGroups = [
     label: 'Reportes',
     collapsible: true,
     items: [
-      { name: 'reporte-desempeno', label: 'Reporte desempeño' },
-      { name: 'reporte-evaluaciones', label: 'Reporte evaluaciones' },
-      { name: 'reporte-proveedores', label: 'Reporte proveedores' },
-      { name: 'bitacora', label: 'Bitácora' },
+      { name: 'reporte-desempeno', label: 'Reporte desempeño', roles: ROLE_GROUPS.reportes },
+      { name: 'reporte-evaluaciones', label: 'Reporte evaluaciones', roles: ROLE_GROUPS.reportes },
+      { name: 'reporte-proveedores', label: 'Reporte proveedores', roles: ROLE_GROUPS.reportes },
+      { name: 'bitacora', label: 'Bitácora', roles: ROLE_GROUPS.administracion },
     ],
   },
   {
@@ -105,10 +108,10 @@ const menuGroups = [
     label: 'Catálogos',
     collapsible: true,
     items: [
-      { name: 'criterios', label: 'Criterios' },
-      { name: 'unidades', label: 'Unidades' },
-      { name: 'productos', label: 'Productos / Materiales' },
-      { name: 'documentos', label: 'Documentos' },
+      { name: 'criterios', label: 'Criterios', roles: ROLE_GROUPS.catalogos },
+      { name: 'unidades', label: 'Unidades', roles: ROLE_GROUPS.catalogos },
+      { name: 'productos', label: 'Productos / Materiales', roles: ROLE_GROUPS.catalogos },
+      { name: 'documentos', label: 'Documentos', roles: ROLE_GROUPS.documentos },
     ],
   },
   {
@@ -116,16 +119,25 @@ const menuGroups = [
     label: 'Seguridad',
     collapsible: true,
     items: [
-      { name: 'usuarios', label: 'Usuarios' },
-      { name: 'roles', label: 'Roles' },
+      { name: 'usuarios', label: 'Usuarios', roles: ROLE_GROUPS.administracion },
+      { name: 'roles', label: 'Roles', roles: ROLE_GROUPS.administracion },
     ],
   },
   {
     id: 'config',
     collapsible: false,
-    items: [{ name: 'configuracion', label: 'Configuración' }],
+    items: [{ name: 'configuracion', label: 'Configuración', roles: ROLE_GROUPS.administracion }],
   },
 ]
+
+const menuGroups = computed(() =>
+  allMenuGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => hasRole(auth.user, item.roles)),
+    }))
+    .filter((group) => group.items.length),
+)
 
 function isOpen(id) {
   return expanded.value.has(id)
@@ -144,7 +156,7 @@ function isGroupActive(group) {
 
 function expandActiveModule() {
   const next = new Set(expanded.value)
-  menuGroups.forEach((group) => {
+  menuGroups.value.forEach((group) => {
     if (group.collapsible && isGroupActive(group)) {
       next.add(group.id)
     }

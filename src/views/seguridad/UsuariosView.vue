@@ -69,6 +69,7 @@
             <ThHint label="Correo" hint="Cuenta de acceso." />
             <ThHint label="Rol" hint="Perfil y permisos asignados." />
             <ThHint label="Estado" hint="Activo o inactivo." />
+            <ThHint label="Seguridad" hint="Intentos fallidos y bloqueo temporal por credenciales inválidas." />
             <th>Acción</th>
           </tr>
         </thead>
@@ -79,7 +80,25 @@
             <td>{{ u.rol }}</td>
             <td><StatusBadge :status="u.estado" /></td>
             <td>
-              <button type="button" class="link-action" @click="editar(u)">Editar</button>
+              <span v-if="u.bloqueado" class="lock-badge">Bloqueado</span>
+              <span v-else-if="u.intentosFallidos" class="warning-badge">Con intentos</span>
+              <span v-else class="safe-badge">Normal</span>
+              <small v-if="u.intentosFallidos" class="attempts">
+                {{ u.intentosFallidos }} intento(s)
+              </small>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="link-action" @click="editar(u)">Editar</button>
+                <button
+                  v-if="puedeDesbloquear(u)"
+                  type="button"
+                  class="link-action danger"
+                  @click="desbloquear(u)"
+                >
+                  Desbloquear
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -95,7 +114,7 @@ import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
-import { toastError, toastSuccess } from '@/utils/alerts'
+import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
 
 const usuarios = ref([])
 const mostrarForm = ref(false)
@@ -136,6 +155,10 @@ function editar(usuario) {
   mostrarForm.value = true
 }
 
+function puedeDesbloquear(usuario) {
+  return Boolean(usuario.bloqueado || Number(usuario.intentosFallidos) > 0)
+}
+
 async function guardar() {
   try {
     if (editandoId.value) {
@@ -162,6 +185,25 @@ async function guardar() {
     toastError(e.message)
   }
 }
+
+async function desbloquear(usuario) {
+  const ok = await confirmAction({
+    title: '¿Desbloquear usuario?',
+    text: `Se limpiarán los intentos fallidos de ${usuario.email}.`,
+    icon: 'warning',
+    confirmText: 'Desbloquear',
+  })
+  if (!ok) return
+
+  try {
+    const actualizado = await api.usuarios.desbloquear(usuario.id)
+    const idx = usuarios.value.findIndex((u) => u.id === usuario.id)
+    if (idx !== -1) usuarios.value[idx] = actualizado
+    toastSuccess('Usuario desbloqueado correctamente.')
+  } catch (e) {
+    toastError(e.message || 'No se pudo desbloquear el usuario.')
+  }
+}
 </script>
 
 <style scoped>
@@ -183,5 +225,42 @@ async function guardar() {
   padding: 0;
   font: inherit;
   cursor: pointer;
+}
+.row-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.link-action.danger {
+  color: var(--filasur-danger);
+}
+.lock-badge,
+.safe-badge,
+.warning-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lock-badge {
+  color: #a8071a;
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+}
+.safe-badge {
+  color: #237804;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+.warning-badge {
+  color: #ad4e00;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+}
+.attempts {
+  display: block;
+  margin-top: 4px;
+  color: var(--filasur-muted);
 }
 </style>

@@ -77,7 +77,8 @@ import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
-import { confirmAction, toastError, toastInfo } from '@/utils/alerts'
+import { toastError, toastSuccess } from '@/utils/alerts'
+import Swal from 'sweetalert2'
 
 const stats = ref({ total: 0, aprobados: 0, observados: 0, rechazados: 0 })
 const filas = ref([])
@@ -131,15 +132,109 @@ async function cargar() {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? '—')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function tablaHtml() {
+  const filasHtml = filas.value.map((r) => `
+    <tr>
+      <td>${escapeHtml(r.proveedor)}</td>
+      <td>${escapeHtml(r.producto)}</td>
+      <td>${escapeHtml(r.fechaEvaluacion)}</td>
+      <td>${escapeHtml(r.puntajeFinal)}</td>
+      <td>${escapeHtml(r.estado)}</td>
+    </tr>
+  `).join('')
+
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>Proveedor</th>
+          <th>Producto / Material</th>
+          <th>Fecha evaluación</th>
+          <th>Puntaje final</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>${filasHtml}</tbody>
+    </table>
+  `
+}
+
+function descargarExcel() {
+  const html = `
+    <html><head><meta charset="UTF-8"></head><body>
+      <h1>Reporte de evaluaciones</h1>
+      ${tablaHtml()}
+    </body></html>
+  `
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `reporte-evaluaciones-${fechaDesde.value}-${fechaHasta.value}.xls`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function imprimirPdf() {
+  const win = window.open('', '_blank')
+  if (!win) {
+    toastError('El navegador bloqueó la ventana de impresión.')
+    return
+  }
+  win.document.write(`
+    <html>
+      <head>
+        <title>Reporte de evaluaciones</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #1f1f1f; }
+          h1 { margin-bottom: 4px; }
+          p { color: #666; margin-top: 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; text-align: left; }
+          th { background: #f5f5f5; }
+        </style>
+      </head>
+      <body>
+        <h1>Reporte de evaluaciones</h1>
+        <p>Periodo: ${escapeHtml(fechaDesde.value)} al ${escapeHtml(fechaHasta.value)}</p>
+        ${tablaHtml()}
+      </body>
+    </html>
+  `)
+  win.document.close()
+  win.focus()
+  win.print()
+}
+
 async function exportar() {
-  const ok = await confirmAction({
+  if (!filas.value.length) {
+    toastError('No hay datos para exportar.')
+    return
+  }
+
+  const result = await Swal.fire({
     title: 'Exportar reporte',
-    text: 'Se generará el reporte de evaluaciones con los filtros actuales. ¿Continuar?',
+    input: 'select',
+    inputOptions: { pdf: 'PDF', excel: 'Excel' },
+    inputValue: 'pdf',
     icon: 'info',
-    confirmText: 'Exportar',
+    showCancelButton: true,
+    confirmButtonText: 'Exportar',
+    cancelButtonText: 'Cancelar',
   })
-  if (!ok) return
-  toastInfo('Exportación PDF/Excel disponible cuando se conecte el backend.')
+  if (!result.isConfirmed) return
+
+  if (result.value === 'excel') descargarExcel()
+  else imprimirPdf()
+  toastSuccess('Reporte generado.')
 }
 
 onMounted(async () => {

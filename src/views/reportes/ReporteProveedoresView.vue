@@ -77,7 +77,8 @@ import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
-import { confirmAction, toastInfo } from '@/utils/alerts'
+import { toastError, toastSuccess } from '@/utils/alerts'
+import Swal from 'sweetalert2'
 
 const proveedores = ref([])
 const busqueda = ref('')
@@ -113,18 +114,214 @@ function conteo(estado) {
   return proveedores.value.filter((p) => p.estado === estado).length
 }
 
-async function exportar() {
-  const ok = await confirmAction({
+function escapeHtml(value) {
+  return String(value ?? '—')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function tablaHtml() {
+  const filasHtml = filtrados.value.map((p) => `
+    <tr>
+      <td>${escapeHtml(p.ruc)}</td>
+      <td>${escapeHtml(p.razonSocial)}</td>
+      <td>${escapeHtml(p.tipoProveedor)}</td>
+      <td>${escapeHtml(p.rubro)}</td>
+      <td>${escapeHtml(formatPuntaje(p.puntajePromedio))}</td>
+      <td>${escapeHtml(p.clasificacion)}</td>
+      <td>${escapeHtml(formatEvaluaciones(p.evaluaciones))}</td>
+      <td>${escapeHtml(p.estado)}</td>
+    </tr>
+  `).join('')
+
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>RUC</th>
+          <th>Razón social</th>
+          <th>Tipo</th>
+          <th>Rubro</th>
+          <th>Puntaje promedio</th>
+          <th>Clasificación</th>
+          <th>Evaluaciones</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>${filasHtml}</tbody>
+    </table>
+  `
+}
+
+function descargarExcel() {
+  const html = `
+    <html><head><meta charset="UTF-8"></head><body>
+      <h1>Reporte de proveedores</h1>
+      ${tablaHtml()}
+    </body></html>
+  `
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'reporte-proveedores.xls'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function imprimirPdf() {
+  const win = window.open('', '_blank')
+  if (!win) {
+    toastError('El navegador bloqueó la ventana de impresión.')
+    return
+  }
+  win.document.write(`
+    <html>
+      <head>
+        <title>Reporte de proveedores</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #1f1f1f; }
+          h1 { margin-bottom: 4px; }
+          p { color: #666; margin-top: 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; text-align: left; }
+          th { background: #f5f5f5; }
+        </style>
+      </head>
+      <body>
+        <h1>Reporte de proveedores</h1>
+        <p>Total filtrado: ${filtrados.value.length}</p>
+        ${tablaHtml()}
+      </body>
+    </html>
+  `)
+  win.document.close()
+  win.focus()
+  win.print()
+}
+
+async function seleccionarFormatoExportacion() {
+  const result = await Swal.fire({
     title: 'Exportar reporte',
-    text: 'Se generará el reporte de proveedores con los filtros actuales. ¿Continuar?',
+    html: `
+      <div class="export-options">
+        <button type="button" class="export-option selected" data-format="pdf">
+          <strong>PDF</strong>
+          <span>Vista lista para imprimir o guardar como PDF.</span>
+        </button>
+        <button type="button" class="export-option" data-format="excel">
+          <strong>Excel</strong>
+          <span>Archivo .xls con los datos filtrados.</span>
+        </button>
+      </div>
+    `,
     icon: 'info',
-    confirmText: 'Exportar',
+    customClass: {
+      popup: 'export-modal',
+      htmlContainer: 'export-modal-body',
+      confirmButton: 'export-confirm',
+    },
+    showCancelButton: true,
+    confirmButtonText: 'Exportar PDF',
+    cancelButtonText: 'Cancelar',
+    didOpen: () => {
+      const confirmButton = Swal.getConfirmButton()
+      document.querySelectorAll('.export-option').forEach((button) => {
+        button.addEventListener('click', () => {
+          const selected = button.dataset.format
+          document.querySelectorAll('.export-option').forEach((b) => b.classList.remove('selected'))
+          button.classList.add('selected')
+          if (confirmButton) {
+            confirmButton.textContent = selected === 'excel' ? 'Exportar Excel' : 'Exportar PDF'
+          }
+        })
+      })
+    },
+    preConfirm: () => {
+      const selected = document.querySelector('.export-option.selected')?.dataset.format || 'pdf'
+      return selected
+    },
   })
-  if (!ok) return
-  toastInfo('Exportación PDF/Excel disponible cuando se conecte el backend.')
+
+  return result.isConfirmed ? result.value : null
+}
+
+async function exportar() {
+  if (!filtrados.value.length) {
+    toastError('No hay datos para exportar.')
+    return
+  }
+
+  const formato = await seleccionarFormatoExportacion()
+  if (!formato) return
+
+  if (formato === 'excel') descargarExcel()
+  else imprimirPdf()
+  toastSuccess('Reporte generado.')
 }
 
 onMounted(async () => {
   proveedores.value = await api.proveedores.listar()
 })
 </script>
+
+<style scoped>
+:global(.export-modal) {
+  width: min(460px, calc(100vw - 32px));
+  border-radius: 14px;
+  padding: 28px;
+}
+
+:global(.export-modal-body) {
+  margin: 16px 0 0;
+  overflow: visible;
+}
+
+:global(.export-options) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+:global(.export-option) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 104px;
+  padding: 16px;
+  border: 1px solid var(--filasur-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--filasur-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+:global(.export-option strong) {
+  font-size: 18px;
+}
+
+:global(.export-option span) {
+  color: var(--filasur-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+:global(.export-option.selected) {
+  border-color: var(--filasur-primary);
+  background: #e6f7ff;
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
+}
+
+:global(.export-confirm) {
+  min-width: 130px;
+}
+
+@media (max-width: 520px) {
+  :global(.export-options) {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

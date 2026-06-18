@@ -4,6 +4,7 @@ import api from '@/services/api'
 
 export const useEvaluacionStore = defineStore('evaluacion', () => {
   const borrador = ref({
+    id: null,
     proveedorId: '',
     periodo: '',
     idProducto: '',
@@ -36,6 +37,7 @@ export const useEvaluacionStore = defineStore('evaluacion', () => {
         .map(([k, v]) => [String(k), Number(v)]),
     )
     const body = {
+      id: payload.id ? Number(payload.id) : null,
       proveedorId: Number(payload.proveedorId),
       periodo: payload.periodo?.trim() ?? '',
       idProducto: payload.idProducto ? Number(payload.idProducto) : null,
@@ -49,6 +51,7 @@ export const useEvaluacionStore = defineStore('evaluacion', () => {
 
   function resetBorrador() {
     borrador.value = {
+      id: null,
       proveedorId: '',
       periodo: '',
       idProducto: '',
