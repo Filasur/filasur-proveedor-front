@@ -144,7 +144,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useEvaluacionStore } from '@/stores/evaluacion'
 import { toastError, toastSuccess } from '@/utils/alerts'
@@ -165,8 +165,10 @@ const PUNTAJE_MIN = 0
 const PUNTAJE_MAX = 100
 const evalStore = useEvaluacionStore()
 const router = useRouter()
+const route = useRoute()
 
 const form = reactive({
+  id: null,
   proveedorId: '',
   periodo: '',
   idProducto: '',
@@ -181,7 +183,7 @@ const criteriosActivos = computed(() =>
 )
 
 const proveedorLabel = computed(
-  () => proveedores.value.find((p) => p.id === form.proveedorId)?.razonSocial || '-',
+  () => proveedores.value.find((p) => p.id === Number(form.proveedorId))?.razonSocial || '-',
 )
 
 const productoLabel = computed(() => {
@@ -271,6 +273,21 @@ function sincronizarCriterios() {
   })
 }
 
+function aplicarBorrador(data) {
+  form.id = data.id
+  form.proveedorId = data.proveedorId
+  form.periodo = data.periodo || ''
+  form.idProducto = data.idProducto || ''
+  form.ordenCompra = data.ordenCompra || ''
+  form.observaciones = data.observaciones || ''
+
+  Object.keys(puntajes).forEach((key) => delete puntajes[key])
+  Object.entries(data.puntajes || {}).forEach(([key, value]) => {
+    puntajes[key] = Number(value)
+  })
+  sincronizarCriterios()
+}
+
 function onSiguiente() {
   if (step.value === 0) sincronizarCriterios()
   step.value++
@@ -284,6 +301,12 @@ onMounted(async () => {
       api.evaluaciones.listarCriterios(),
     ])
     sincronizarCriterios()
+    const idBorrador = Number(route.query.id)
+    if (Number.isInteger(idBorrador) && idBorrador > 0) {
+      const borrador = await api.evaluaciones.obtenerBorrador(idBorrador)
+      aplicarBorrador(borrador)
+      toastSuccess('Borrador cargado para continuar la evaluación.')
+    }
   } catch (e) {
     toastError(e.message || 'No se pudieron cargar proveedores o criterios.')
   }

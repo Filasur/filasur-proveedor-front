@@ -89,7 +89,8 @@ import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ThHint from '@/components/ui/ThHint.vue'
-import { confirmAction, toastInfo } from '@/utils/alerts'
+import { toastError, toastSuccess } from '@/utils/alerts'
+import Swal from 'sweetalert2'
 
 const resumen = ref(null)
 const chartEstados = ref({ labels: [], values: [] })
@@ -116,15 +117,130 @@ const distribucionClase = computed(() => {
   })
 })
 
+function escapeHtml(value) {
+  return String(value ?? '—')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function resumenHtml() {
+  const distribucionRows = distribucionClase.value.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.clase)}</td>
+      <td>${escapeHtml(row.cantidad)}</td>
+      <td>${escapeHtml(row.porcentaje)}%</td>
+    </tr>
+  `).join('')
+
+  const estadoRows = chartEstados.value.labels.map((label, i) => `
+    <tr>
+      <td>${escapeHtml(label)}</td>
+      <td>${escapeHtml(chartEstados.value.values[i])}</td>
+    </tr>
+  `).join('')
+
+  const evolucionRows = meses.value.map((mes, i) => `
+    <tr>
+      <td>${escapeHtml(mes)}</td>
+      <td>${escapeHtml(chartScores.value[i])}%</td>
+    </tr>
+  `).join('')
+
+  return `
+    <h2>Indicadores</h2>
+    <table>
+      <tbody>
+        <tr><th>Puntaje promedio global</th><td>${escapeHtml(puntajePromedioPct.value)}</td></tr>
+        <tr><th>Evaluaciones finalizadas</th><td>${escapeHtml(resumen.value?.evaluacionesFinalizadas ?? 0)}</td></tr>
+        <tr><th>En proceso</th><td>${escapeHtml(resumen.value?.evaluacionesEnProceso ?? 0)}</td></tr>
+        <tr><th>Proveedores activos</th><td>${escapeHtml(resumen.value?.proveedoresActivos ?? 0)}</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Distribución por clasificación</h2>
+    <table>
+      <thead><tr><th>Clasificación</th><th>Cantidad</th><th>%</th></tr></thead>
+      <tbody>${distribucionRows}</tbody>
+    </table>
+
+    <h2>Evolución mensual</h2>
+    <table>
+      <thead><tr><th>Mes</th><th>Puntaje %</th></tr></thead>
+      <tbody>${evolucionRows}</tbody>
+    </table>
+
+    <h2>Evaluaciones por estado</h2>
+    <table>
+      <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+      <tbody>${estadoRows}</tbody>
+    </table>
+  `
+}
+
+function descargarExcel() {
+  const html = `
+    <html><head><meta charset="UTF-8"></head><body>
+      <h1>Reporte de desempeño</h1>
+      ${resumenHtml()}
+    </body></html>
+  `
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'reporte-desempeno.xls'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function imprimirPdf() {
+  const win = window.open('', '_blank')
+  if (!win) {
+    toastError('El navegador bloqueó la ventana de impresión.')
+    return
+  }
+  win.document.write(`
+    <html>
+      <head>
+        <title>Reporte de desempeño</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #1f1f1f; }
+          h1 { margin-bottom: 12px; }
+          h2 { margin-top: 22px; font-size: 16px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; text-align: left; }
+          th { background: #f5f5f5; }
+        </style>
+      </head>
+      <body>
+        <h1>Reporte de desempeño</h1>
+        ${resumenHtml()}
+      </body>
+    </html>
+  `)
+  win.document.close()
+  win.focus()
+  win.print()
+}
+
 async function exportar() {
-  const ok = await confirmAction({
+  const result = await Swal.fire({
     title: 'Exportar reporte',
-    text: 'Se generará el reporte de desempeño. ¿Continuar?',
+    input: 'select',
+    inputOptions: { pdf: 'PDF', excel: 'Excel' },
+    inputValue: 'pdf',
     icon: 'info',
-    confirmText: 'Exportar',
+    showCancelButton: true,
+    confirmButtonText: 'Exportar',
+    cancelButtonText: 'Cancelar',
   })
-  if (!ok) return
-  toastInfo('Exportación PDF/Excel disponible cuando se conecte el backend.')
+  if (!result.isConfirmed) return
+
+  if (result.value === 'excel') descargarExcel()
+  else imprimirPdf()
+  toastSuccess('Reporte generado.')
 }
 
 onMounted(async () => {

@@ -1,7 +1,5 @@
-import { mockApi } from '@/mocks'
 import { normalizeDashboardResponse } from '@/utils/normalizeDashboard'
 
-const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 const baseUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
 
 /** Respuesta estándar del back: { success, message, data } */
@@ -59,6 +57,10 @@ async function requestForm(path, formData, method = 'POST') {
 const realApi = {
   auth: {
     login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    recuperarPassword: (body) =>
+      request('/auth/recuperar-password', { method: 'POST', body: JSON.stringify(body) }),
+    cambiarPassword: (body) =>
+      request('/auth/cambiar-password', { method: 'POST', body: JSON.stringify(body) }),
   },
   dashboard: {
     getResumen: async () => normalizeDashboardResponse(await request('/dashboard/resumen')),
@@ -79,6 +81,7 @@ const realApi = {
   evaluaciones: {
     listar: (params) => request(`/evaluaciones?${new URLSearchParams(params || {})}`),
     listarCriterios: () => request('/evaluaciones/criterios'),
+    obtenerBorrador: (id) => request(`/evaluaciones/${Number(id)}/borrador`),
     guardarBorrador: (body) => request('/evaluaciones/borrador', { method: 'POST', body: JSON.stringify(body) }),
     consolidacion: (id) => request(`/evaluaciones/${Number(id)}/consolidacion`),
     aprobar: (id) => request(`/evaluaciones/${Number(id)}/aprobar`, { method: 'POST' }),
@@ -122,9 +125,12 @@ const realApi = {
     crear: (body) => request('/usuarios', { method: 'POST', body: JSON.stringify(body) }),
     actualizar: (id, body) =>
       request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    desbloquear: (id) => request(`/usuarios/${id}/desbloquear`, { method: 'POST' }),
   },
   roles: {
     listar: () => request('/roles'),
+    actualizarModulos: (id, modulos) =>
+      request(`/roles/${id}/modulos`, { method: 'PUT', body: JSON.stringify({ modulos }) }),
   },
   configuracion: {
     obtener: () => request('/configuracion'),
@@ -132,6 +138,4 @@ const realApi = {
   },
 }
 
-const api = useMock ? mockApi : realApi
-
-export default api
+export default realApi

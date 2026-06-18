@@ -107,6 +107,7 @@ import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
+import Swal from 'sweetalert2'
 
 const route = useRoute()
 const store = useEvaluacionStore()
@@ -178,21 +179,26 @@ async function aprobar() {
 }
 
 async function rechazar() {
-  const ok = await confirmAction({
+  const result = await Swal.fire({
     title: '¿Rechazar proveedor?',
-    text: 'Esta acción marcará la evaluación como rechazada.',
+    input: 'textarea',
+    inputLabel: 'Motivo del rechazo',
+    inputPlaceholder: 'Detalle el motivo del rechazo...',
     icon: 'error',
-    confirmText: 'Rechazar',
-    danger: true,
+    showCancelButton: true,
+    confirmButtonText: 'Rechazar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#ff4d4f',
+    inputValidator: (value) => (!value?.trim() ? 'Ingrese el motivo del rechazo.' : undefined),
   })
-  if (!ok) return
+  if (!result.isConfirmed) return
   const id = parseEvaluacionId(evalId.value)
   if (!id) {
     toastError('Seleccione una evaluación válida.')
     return
   }
   try {
-    await api.evaluaciones.rechazar(id)
+    await api.evaluaciones.rechazar(id, result.value.trim())
     toastSuccess('Proveedor rechazado.')
     cargar()
   } catch (e) {

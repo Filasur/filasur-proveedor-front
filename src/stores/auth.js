@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref('')
 
   const isAuthenticated = computed(() => Boolean(token.value))
+  const debeCambiarPassword = computed(() => Boolean(user.value?.debeCambiarPassword))
 
   function persistSession(session) {
     if (!session?.token) {
@@ -72,6 +73,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function recuperarPassword(email) {
+    return api.auth.recuperarPassword({ email })
+  }
+
+  async function cambiarPassword(passwordActual, passwordNueva) {
+    const result = await api.auth.cambiarPassword({ passwordActual, passwordNueva })
+    if (user.value) {
+      user.value = { ...user.value, debeCambiarPassword: false }
+      localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    }
+    return result
+  }
+
   function logout() {
     token.value = ''
     user.value = null
@@ -84,7 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    debeCambiarPassword,
     login,
+    recuperarPassword,
+    cambiarPassword,
     logout,
     hydrateFromStorage,
   }

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { ROLE_GROUPS, hasRole } from '@/security/permissions'
 
 const routes = [
   {
@@ -27,7 +28,7 @@ const routes = [
         path: 'dashboard',
         name: 'dashboard',
         component: () => import('@/views/DashboardView.vue'),
-        meta: { title: 'Dashboard' },
+        meta: { title: 'Dashboard', roles: ROLE_GROUPS.evaluaciones },
       },
 
       // Proveedores
@@ -35,25 +36,25 @@ const routes = [
         path: 'proveedores',
         name: 'proveedores',
         component: () => import('@/views/proveedores/ListadoProveedoresView.vue'),
-        meta: { title: 'Proveedores' },
+        meta: { title: 'Proveedores', roles: ROLE_GROUPS.proveedores },
       },
       {
         path: 'registro-proveedor',
         name: 'registro-proveedor',
         component: () => import('@/views/RegistroProveedorView.vue'),
-        meta: { title: 'Registro de proveedor' },
+        meta: { title: 'Registro de proveedor', roles: ROLE_GROUPS.proveedores },
       },
       {
         path: 'proveedores/:id',
         name: 'detalle-proveedor',
         component: () => import('@/views/proveedores/DetalleProveedorView.vue'),
-        meta: { title: 'Detalle del proveedor' },
+        meta: { title: 'Detalle del proveedor', roles: ROLE_GROUPS.proveedores },
       },
       {
         path: 'proveedores/:id/editar',
         name: 'editar-proveedor',
         component: () => import('@/views/proveedores/EditarProveedorView.vue'),
-        meta: { title: 'Actualizar proveedor' },
+        meta: { title: 'Actualizar proveedor', roles: ROLE_GROUPS.proveedores },
       },
 
       // Evaluaciones
@@ -61,19 +62,19 @@ const routes = [
         path: 'evaluaciones',
         name: 'evaluaciones-pendientes',
         component: () => import('@/views/evaluaciones/EvaluacionesPendientesView.vue'),
-        meta: { title: 'Evaluaciones' },
+        meta: { title: 'Evaluaciones', roles: ROLE_GROUPS.evaluaciones },
       },
       {
         path: 'nueva-evaluacion',
         name: 'nueva-evaluacion',
         component: () => import('@/views/NuevaEvaluacionView.vue'),
-        meta: { title: 'Nueva evaluación' },
+        meta: { title: 'Nueva evaluación', roles: ROLE_GROUPS.evaluaciones },
       },
       {
         path: 'consolidacion',
         name: 'consolidacion',
         component: () => import('@/views/ConsolidacionEvaluacionView.vue'),
-        meta: { title: 'Consolidación de evaluación' },
+        meta: { title: 'Consolidación de evaluación', roles: ROLE_GROUPS.evaluaciones },
       },
 
       // Reportes
@@ -85,7 +86,7 @@ const routes = [
         path: 'bitacora',
         name: 'bitacora',
         component: () => import('@/views/reportes/HistorialEvaluacionesView.vue'),
-        meta: { title: 'Bitácora del sistema' },
+        meta: { title: 'Bitácora del sistema', roles: ROLE_GROUPS.administracion },
       },
       {
         path: 'reportes',
@@ -95,19 +96,19 @@ const routes = [
         path: 'reportes/evaluaciones',
         name: 'reporte-evaluaciones',
         component: () => import('@/views/reportes/ReporteEvaluacionesView.vue'),
-        meta: { title: 'Reporte de evaluaciones' },
+        meta: { title: 'Reporte de evaluaciones', roles: ROLE_GROUPS.reportes },
       },
       {
         path: 'reportes/proveedores',
         name: 'reporte-proveedores',
         component: () => import('@/views/reportes/ReporteProveedoresView.vue'),
-        meta: { title: 'Reporte de proveedores' },
+        meta: { title: 'Reporte de proveedores', roles: ROLE_GROUPS.reportes },
       },
       {
         path: 'reportes/desempeno',
         name: 'reporte-desempeno',
         component: () => import('@/views/reportes/ReporteDesempenoView.vue'),
-        meta: { title: 'Reporte de desempeño' },
+        meta: { title: 'Reporte de desempeño', roles: ROLE_GROUPS.reportes },
       },
 
       // Catálogos
@@ -115,25 +116,25 @@ const routes = [
         path: 'criterios',
         name: 'criterios',
         component: () => import('@/views/catalogos/CriteriosView.vue'),
-        meta: { title: 'Criterios' },
+        meta: { title: 'Criterios', roles: ROLE_GROUPS.catalogos },
       },
       {
         path: 'unidades',
         name: 'unidades',
         component: () => import('@/views/catalogos/UnidadesView.vue'),
-        meta: { title: 'Unidades de medida' },
+        meta: { title: 'Unidades de medida', roles: ROLE_GROUPS.catalogos },
       },
       {
         path: 'productos',
         name: 'productos',
         component: () => import('@/views/catalogos/ProductosView.vue'),
-        meta: { title: 'Productos / Materiales' },
+        meta: { title: 'Productos / Materiales', roles: ROLE_GROUPS.catalogos },
       },
       {
         path: 'documentos',
         name: 'documentos',
         component: () => import('@/views/catalogos/DocumentosView.vue'),
-        meta: { title: 'Documentos' },
+        meta: { title: 'Documentos', roles: ROLE_GROUPS.documentos },
       },
 
       // Seguridad
@@ -141,13 +142,13 @@ const routes = [
         path: 'usuarios',
         name: 'usuarios',
         component: () => import('@/views/seguridad/UsuariosView.vue'),
-        meta: { title: 'Usuarios' },
+        meta: { title: 'Usuarios', roles: ROLE_GROUPS.administracion },
       },
       {
         path: 'roles',
         name: 'roles',
         component: () => import('@/views/seguridad/RolesView.vue'),
-        meta: { title: 'Roles' },
+        meta: { title: 'Roles', roles: ROLE_GROUPS.administracion },
       },
 
       // Configuración
@@ -155,7 +156,7 @@ const routes = [
         path: 'configuracion',
         name: 'configuracion',
         component: () => import('@/views/ConfiguracionView.vue'),
-        meta: { title: 'Configuración' },
+        meta: { title: 'Configuración', roles: ROLE_GROUPS.administracion },
       },
     ],
   },
@@ -186,6 +187,11 @@ router.beforeEach((to, _from, next) => {
   if (token) {
     const auth = useAuthStore()
     if (!auth.token) auth.hydrateFromStorage()
+    const restricted = to.matched.find((r) => Array.isArray(r.meta.roles))
+    if (restricted && !hasRole(auth.user, restricted.meta.roles)) {
+      next({ name: 'dashboard' })
+      return
+    }
   }
 
   next()
