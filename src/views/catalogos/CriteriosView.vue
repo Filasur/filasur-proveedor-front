@@ -7,10 +7,10 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Criterio</th>
-            <th>Área</th>
-            <th>Peso (%)</th>
-            <th>Estado</th>
+            <ThHint label="Criterio" hint="Nombre del aspecto a evaluar." />
+            <ThHint label="Área" hint="Departamento que califica este criterio." />
+            <ThHint label="Peso (%)" hint="Influencia en el puntaje final (suma 100% entre criterios activos)." />
+            <ThHint label="Estado" hint="Si el criterio está activo en nuevas evaluaciones." />
           </tr>
         </thead>
         <tbody>
@@ -22,7 +22,11 @@
           </tr>
         </tbody>
       </table>
-      <p class="hint">Los criterios se administran desde el módulo de configuración cuando el backend esté listo.</p>
+      <p class="hint">
+        Para modificar los pesos (%) o activar/desactivar criterios, vaya a
+        <RouterLink :to="{ name: 'configuracion' }">Configuración</RouterLink>
+        → sección <strong>Criterios y pesos</strong>.
+      </p>
     </div>
   </div>
 </template>
@@ -31,6 +35,7 @@
 import { onMounted, ref } from 'vue'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import ThHint from '@/components/ui/ThHint.vue'
 
 const criterios = ref([])
 onMounted(async () => {
@@ -39,5 +44,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.hint { margin-top: 16px; font-size: 13px; color: var(--filasur-muted); }
+.hint {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--filasur-muted);
+}
+.hint a {
+  color: var(--filasur-primary);
+  font-weight: 500;
+}
 </style>

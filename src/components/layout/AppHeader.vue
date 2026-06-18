@@ -6,7 +6,9 @@
     </div>
     <div class="header-actions">
       <span class="user">{{ userLabel }}</span>
-      <button type="button" class="btn btn-ghost" @click="onLogout">Cerrar sesión</button>
+      <button type="button" class="btn btn-sesion" title="Salir del sistema" @click="onLogout">
+        Cerrar sesión
+      </button>
     </div>
   </header>
 </template>
@@ -62,7 +64,10 @@ function onLogout() {
 }
 
 .user {
-  color: var(--filasur-muted);
+  color: var(--filasur-text);
   font-size: 14px;
+  font-weight: 500;
+  padding-right: 12px;
+  border-right: 1px solid var(--filasur-border);
 }
 </style>

@@ -5,94 +5,82 @@
 
     <form class="card form-grid two" @submit.prevent="onSubmit">
       <div>
-        <label for="ruc">RUC</label>
+        <LabelHint for-id="ruc" label="RUC" hint="Número de RUC del proveedor (11 dígitos)." />
         <input id="ruc" v-model="form.ruc" required maxlength="11" />
       </div>
       <div>
-        <label for="razon">Razón social</label>
+        <LabelHint for-id="razon" label="Razón social" hint="Nombre legal registrado de la empresa." />
         <input id="razon" v-model="form.razonSocial" required />
       </div>
       <div>
-        <label for="tipo">Tipo proveedor</label>
-        <select id="tipo" v-model="form.tipoProveedor" required>
-          <option value="Materia prima">Materia prima</option>
-          <option value="Servicio">Servicio</option>
-          <option value="Mixto">Mixto</option>
+        <LabelHint
+          for-id="tipo"
+          label="Tipo proveedor"
+          hint="Indica si suministra materia prima, servicios o ambos."
+        />
+        <select id="tipo" v-model="form.idTipoProveedor" required>
+          <option value="" disabled>Seleccionar tipo</option>
+          <option :value="1">Materia prima</option>
+          <option :value="2">Servicio</option>
+          <option :value="3">Mixto</option>
         </select>
       </div>
       <div>
-        <label for="rubro">Rubro</label>
+        <LabelHint for-id="rubro" label="Rubro" hint="Giro o sector económico del proveedor." />
         <input id="rubro" v-model="form.rubro" required />
       </div>
       <div>
-        <label for="telefono">Teléfono</label>
+        <LabelHint for-id="telefono" label="Teléfono" hint="Teléfono de contacto principal." />
         <input id="telefono" v-model="form.telefono" />
       </div>
       <div class="full">
-        <label for="direccion">Dirección</label>
+        <LabelHint for-id="direccion" label="Dirección" hint="Domicilio fiscal o de operaciones." />
         <input id="direccion" v-model="form.direccion" />
       </div>
       <div class="full">
-        <label>Documentos (simulado)</label>
-        <input type="file" multiple disabled />
-        <small class="hint">La carga de archivos se habilitará con el backend.</small>
+        <LabelHint
+          label="Documentos"
+          hint="Fichas técnicas, certificados u otros PDF."
+        />
+        <input
+          id="documentos"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          @change="onArchivosChange"
+        />
+        <p v-if="archivos.length" class="archivos-hint">
+          {{ archivos.length }} archivo(s) seleccionado(s)
+        </p>
       </div>
       <div>
-        <label for="contacto">Contacto</label>
+        <LabelHint for-id="contacto" label="Contacto" hint="Persona de referencia en la empresa." />
         <input id="contacto" v-model="form.contacto" required />
       </div>
       <div class="full">
-        <label for="correo">Correo</label>
+        <LabelHint for-id="correo" label="Correo" hint="Correo electrónico de contacto comercial." />
         <input id="correo" v-model="form.correo" type="email" required />
       </div>
-      <p v-if="mensaje" class="success">{{ mensaje }}</p>
-      <p v-if="error" class="error-text">{{ error }}</p>
       <div class="actions full">
         <button class="btn btn-primary" type="submit" :disabled="loading">
           {{ loading ? 'Guardando...' : 'Registrar proveedor' }}
         </button>
       </div>
     </form>
-
-    <section class="card list">
-      <div class="list-head">
-        <h3>Últimos proveedores registrados</h3>
-        <RouterLink class="link-action" :to="{ name: 'proveedores' }">Ver listado completo →</RouterLink>
-      </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>RUC</th>
-            <th>Razón social</th>
-            <th>Tipo</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in proveedores.slice(0, 5)" :key="p.id">
-            <td>{{ p.ruc }}</td>
-            <td>{{ p.razonSocial }}</td>
-            <td>{{ p.tipoProveedor }}</td>
-            <td>{{ p.estado }}</td>
-            <td>
-              <RouterLink class="link-action" :to="{ name: 'detalle-proveedor', params: { id: p.id } }">Ver</RouterLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import { toastError, toastSuccess } from '@/utils/alerts'
+import LabelHint from '@/components/ui/LabelHint.vue'
 
 const form = reactive({
   ruc: '',
   razonSocial: '',
-  tipoProveedor: 'Materia prima',
+  idTipoProveedor: '',
   rubro: '',
   contacto: '',
   telefono: '',
@@ -100,29 +88,34 @@ const form = reactive({
   direccion: '',
 })
 
-const proveedores = ref([])
+const router = useRouter()
 const loading = ref(false)
-const mensaje = ref('')
-const error = ref('')
+const archivos = ref([])
 
-onMounted(async () => {
-  proveedores.value = await api.proveedores.listar()
-})
+function onArchivosChange(event) {
+  archivos.value = Array.from(event.target.files || [])
+}
 
 async function onSubmit() {
+  if (form.idTipoProveedor === '' || form.idTipoProveedor == null) {
+    toastError('Seleccione el tipo de proveedor.')
+    return
+  }
   loading.value = true
-  mensaje.value = ''
-  error.value = ''
   try {
-    const nuevo = await api.proveedores.registrar({ ...form })
-    proveedores.value = [nuevo, ...proveedores.value]
-    mensaje.value = 'Proveedor registrado correctamente.'
-    Object.assign(form, {
-      ruc: '', razonSocial: '', tipoProveedor: 'Materia prima', rubro: '',
-      contacto: '', telefono: '', correo: '', direccion: '',
+    const { idTipoProveedor, ...resto } = form
+    const resultado = await api.proveedores.registrar({
+      ...resto,
+      idTipoProveedor: Number(idTipoProveedor),
     })
+    const idProveedor = resultado?.id
+    if (idProveedor && archivos.value.length) {
+      await api.proveedores.subirDocumentos(idProveedor, archivos.value)
+    }
+    toastSuccess('Proveedor registrado correctamente.')
+    router.push({ name: 'proveedores' })
   } catch (e) {
-    error.value = e.message
+    toastError(e.message)
   } finally {
     loading.value = false
   }
@@ -139,28 +132,9 @@ async function onSubmit() {
   justify-content: flex-end;
 }
 
-.list {
-  margin-top: 16px;
-}
-
-.list-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.list-head h3 { margin: 0; }
-
-.hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
+.archivos-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
   color: var(--filasur-muted);
-}
-
-.success {
-  color: var(--filasur-success);
-  margin: 0;
 }
 </style>

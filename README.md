@@ -15,12 +15,9 @@ cp .env.example .env
 npm run dev
 ```
 
-## Credenciales mock
+## Configuración del API
 
-Configuradas en `.env`:
-
-- `VITE_MOCK_USER`
-- `VITE_MOCK_PASSWORD`
+Configura `VITE_BACKEND_URL` en `.env` con la URL base del backend, incluyendo `/api`.
 
 ## Páginas del sistema
 
@@ -35,22 +32,27 @@ Configuradas en `.env`:
 | Evaluaciones | `/evaluaciones` | Pendientes |
 | Evaluaciones | `/nueva-evaluacion` | Nueva evaluación |
 | Evaluaciones | `/consolidacion` | Consolidación |
-| Reportes | `/ranking` | Ranking |
-| Reportes | `/historial` | Historial |
-| Reportes | `/reportes` | Reportes |
+| Reportes | `/reportes/evaluaciones` | Reporte de evaluaciones |
+| Reportes | `/reportes/proveedores` | Reporte de proveedores |
+| Reportes | `/reportes/desempeno` | Reporte de desempeño |
+| Reportes | `/bitacora` | Bitácora del sistema |
 | Catálogos | `/criterios` | Criterios |
+| Catálogos | `/unidades` | Unidades de medida |
 | Catálogos | `/productos` | Productos / Materiales |
 | Catálogos | `/documentos` | Documentos |
 | Seguridad | `/usuarios` | Gestión de usuarios |
 | Seguridad | `/roles` | Gestión de roles |
 | Sistema | `/configuracion` | Configuración |
 
-## Modo mock vs backend
+## Backend
 
-- `VITE_USE_MOCK=true` → datos en `src/mocks/`
-- `VITE_USE_MOCK=false` → API en `VITE_BACKEND_URL`
+El frontend consume directamente los endpoints definidos en `src/services/api.js`.
 
-Para conectar el backend, implemente los endpoints definidos en `src/services/api.js`.
+## Alertas y notificaciones
+
+- **Toasts ([Notivue](https://notivue.smastrom.io))**: éxito, error e información tras guardar datos.
+- **Confirmaciones ([SweetAlert2](https://sweetalert2.github.io))**: aprobar/rechazar proveedor, exportar reportes.
+- Utilidades centralizadas en `src/utils/alerts.js`.
 
 ## Scripts
 

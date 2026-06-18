@@ -2,26 +2,59 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
 import { TOKEN_KEY, USER_KEY } from '@/router'
+import { toastSuccess } from '@/utils/alerts'
+
+function readStoredUser() {
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw || raw === 'undefined' || raw === 'null') return null
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    localStorage.removeItem(USER_KEY)
+    return null
+  }
+}
+
+function clearStoredSession() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY) || '')
-  const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'))
+  const user = ref(readStoredUser())
   const loading = ref(false)
   const error = ref('')
 
   const isAuthenticated = computed(() => Boolean(token.value))
+  const debeCambiarPassword = computed(() => Boolean(user.value?.debeCambiarPassword))
 
   function persistSession(session) {
+    if (!session?.token) {
+      clearStoredSession()
+      token.value = ''
+      user.value = null
+      return
+    }
     token.value = session.token
-    user.value = session.user
+    user.value = session.user ?? null
     localStorage.setItem(TOKEN_KEY, session.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(session.user))
+    if (session.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(session.user))
+    } else {
+      localStorage.removeItem(USER_KEY)
+    }
   }
 
   function hydrateFromStorage() {
     token.value = localStorage.getItem(TOKEN_KEY) || ''
-    const raw = localStorage.getItem(USER_KEY)
-    user.value = raw ? JSON.parse(raw) : null
+    user.value = readStoredUser()
+    if (token.value && !user.value) {
+      const raw = localStorage.getItem(USER_KEY)
+      if (raw === 'undefined' || !raw) clearStoredSession()
+      token.value = ''
+    }
   }
 
   async function login(email, password) {
@@ -30,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const session = await api.auth.login({ email, password })
       persistSession(session)
+      toastSuccess(`Bienvenido, ${session.user?.nombre || 'usuario'}`)
       return session
     } catch (e) {
       error.value = e.message || 'No se pudo iniciar sesión'
@@ -39,11 +73,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function recuperarPassword(email) {
+    return api.auth.recuperarPassword({ email })
+  }
+
+  async function cambiarPassword(passwordActual, passwordNueva) {
+    const result = await api.auth.cambiarPassword({ passwordActual, passwordNueva })
+    if (user.value) {
+      user.value = { ...user.value, debeCambiarPassword: false }
+      localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    }
+    return result
+  }
+
   function logout() {
     token.value = ''
     user.value = null
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearStoredSession()
   }
 
   return {
@@ -52,7 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    debeCambiarPassword,
     login,
+    recuperarPassword,
+    cambiarPassword,
     logout,
     hydrateFromStorage,
   }

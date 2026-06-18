@@ -1,0 +1,34 @@
+substitutions:
+  _REGION: us-central1
+  _SERVICE: filasur-proveedor-front
+  _VITE_BACKEND_URL: https://filasur-proveedor-api-CHANGE_ME.a.run.app/api
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - VITE_BACKEND_URL=${_VITE_BACKEND_URL}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/filasur/${_SERVICE}:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/filasur/${_SERVICE}:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/filasur/${_SERVICE}:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/filasur/${_SERVICE}:$COMMIT_SHA

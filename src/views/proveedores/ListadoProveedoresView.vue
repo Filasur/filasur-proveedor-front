@@ -5,16 +5,22 @@
         <h2 class="page-title">Listado de proveedores</h2>
         <p class="page-subtitle">Buscar, filtrar y consultar proveedores registrados</p>
       </div>
-      <RouterLink :to="{ name: 'registro-proveedor' }" class="btn btn-primary">+ Registrar proveedor</RouterLink>
+      <RouterLink :to="{ name: 'registro-proveedor' }" class="btn btn-primary">Registrar proveedor</RouterLink>
     </div>
 
     <div class="card toolbar-row">
       <div class="field grow">
-        <label>Buscar</label>
+        <LabelHint
+          label="Buscar"
+          hint="Filtra por RUC, nombre de empresa o rubro de actividad."
+        />
         <input v-model="busqueda" placeholder="RUC, razón social o rubro..." />
       </div>
       <div class="field">
-        <label>Estado</label>
+        <LabelHint
+          label="Estado"
+          hint="Situación del proveedor en el proceso (registro, evaluación, aprobación)."
+        />
         <select v-model="filtroEstado">
           <option value="">Todos</option>
           <option v-for="e in estados" :key="e" :value="e">{{ e }}</option>
@@ -27,12 +33,18 @@
       <table v-else class="data-table">
         <thead>
           <tr>
-            <th>RUC</th>
-            <th>Razón social</th>
-            <th>Tipo</th>
-            <th>Rubro</th>
-            <th>Clasificación</th>
-            <th>Estado</th>
+            <ThHint label="RUC" hint="Registro Único de Contribuyentes (11 dígitos)." />
+            <ThHint label="Razón social" hint="Nombre legal de la empresa proveedora." />
+            <ThHint label="Tipo" hint="Materia prima, servicio o mixto." />
+            <ThHint label="Rubro" hint="Sector o giro del proveedor." />
+            <ThHint
+              label="Clasificación"
+              hint="Nivel de desempeño según evaluaciones: A (mejor), B (medio), C (bajo)."
+            />
+            <ThHint
+              label="Estado"
+              hint="Paso actual: activo, en evaluación, aprobado, rechazado, etc."
+            />
             <th>Acción</th>
           </tr>
         </thead>
@@ -59,6 +71,8 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import LabelHint from '@/components/ui/LabelHint.vue'
+import ThHint from '@/components/ui/ThHint.vue'
 
 const proveedores = ref([])
 const loading = ref(true)
@@ -81,13 +95,3 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-.page-head .page-subtitle { margin-bottom: 16px; }
-</style>
