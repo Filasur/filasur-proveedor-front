@@ -22,7 +22,14 @@ async function request(path, options = {}) {
   const token = localStorage.getItem('filasur_token')
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${baseUrl}${path}`, { ...options, headers })
+  let res
+  try {
+    res = await fetch(`${baseUrl}${path}`, { ...options, headers })
+  } catch {
+    throw new Error(
+      'No se pudo conectar con el servidor. Si estaba subiendo un documento, confirme el deploy del API y el script 08_documentos_gestion.sql en la BD remota.'
+    )
+  }
   const body = await res.json().catch(() => ({}))
 
   if (!res.ok) {
@@ -36,22 +43,33 @@ async function request(path, options = {}) {
   return unwrapApiPayload(body)
 }
 
-async function requestForm(path, formData, method = 'POST') {
-  const headers = {}
-  const token = localStorage.getItem('filasur_token')
-  if (token) headers.Authorization = `Bearer ${token}`
+const MAX_DOC_BYTES = 10 * 1024 * 1024
 
-  const res = await fetch(`${baseUrl}${path}`, { method, headers, body: formData })
-  const body = await res.json().catch(() => ({}))
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      const comma = result.indexOf(',')
+      resolve(comma >= 0 ? result.slice(comma + 1) : result)
+    }
+    reader.onerror = () => reject(new Error(`No se pudo leer el archivo ${file.name}`))
+    reader.readAsDataURL(file)
+  })
+}
 
-  if (!res.ok) {
-    const msg =
-      body?.message ||
-      (typeof body?.data === 'string' ? body.data : null) ||
-      `Error HTTP ${res.status}`
-    throw new Error(msg)
+async function archivosABase64(archivos) {
+  const items = []
+  for (const file of archivos) {
+    if (file.size > MAX_DOC_BYTES) {
+      throw new Error(`El archivo "${file.name}" supera el máximo de 10 MB.`)
+    }
+    items.push({
+      nombreArchivo: file.name,
+      contenidoBase64: await fileToBase64(file),
+    })
   }
-  return unwrapApiPayload(body)
+  return items
 }
 
 const realApi = {
@@ -70,14 +88,16 @@ const realApi = {
     obtener: (id) => request(`/proveedores/${id}`),
     registrar: (body) => request('/proveedores', { method: 'POST', body: JSON.stringify(body) }),
     actualizar: (id, body) => request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-    subirDocumentos: (idProveedor, archivos, meta = {}) => {
-      const form = new FormData()
-      for (const file of archivos) {
-        form.append('archivos', file)
-      }
-      if (meta.categoria) form.append('categoria', meta.categoria)
-      if (meta.fechaVencimiento) form.append('fechaVencimiento', meta.fechaVencimiento)
-      return requestForm(`/proveedores/${idProveedor}/documentos`, form)
+    subirDocumentos: async (idProveedor, archivos, meta = {}) => {
+      const items = await archivosABase64(archivos)
+      return request(`/proveedores/${idProveedor}/documentos`, {
+        method: 'POST',
+        body: JSON.stringify({
+          archivos: items,
+          categoria: meta.categoria || null,
+          fechaVencimiento: meta.fechaVencimiento || null,
+        }),
+      })
     },
   },
   evaluaciones: {

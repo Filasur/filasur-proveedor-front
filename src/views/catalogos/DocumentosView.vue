@@ -50,7 +50,7 @@
       <div class="full">
         <LabelHint
           label="Archivos"
-          hint="PDF, DOC, DOCX, PNG o JPG. Máximo 50 MB por carga."
+          hint="PDF, DOC, DOCX, PNG o JPG. Máximo 10 MB por archivo."
         />
         <input
           type="file"

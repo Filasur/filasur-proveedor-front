@@ -107,7 +107,7 @@
                 <input v-model="carga.fechaVencimiento" type="date" />
               </div>
               <div class="full">
-                <LabelHint label="Archivos" hint="PDF, DOC, DOCX, PNG o JPG." />
+                <LabelHint label="Archivos" hint="PDF, DOC, DOCX, PNG o JPG. Máximo 10 MB." />
                 <input
                   type="file"
                   multiple
