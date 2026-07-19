@@ -40,8 +40,21 @@
       <div class="full">
         <LabelHint
           label="Documentos"
-          hint="Fichas técnicas, certificados u otros PDF."
+          hint="Fichas técnicas, certificados u otros PDF. Opcional al registrar."
         />
+        <div class="docs-meta form-grid two">
+          <div>
+            <LabelHint label="Categoría" hint="Tipo documental de negocio." />
+            <select v-model="docMeta.categoria">
+              <option value="">Sin categoría</option>
+              <option v-for="c in categorias" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div>
+            <LabelHint label="Fecha de vencimiento" hint="Opcional, para documentos con vigencia." />
+            <input v-model="docMeta.fechaVencimiento" type="date" />
+          </div>
+        </div>
         <input
           id="documentos"
           type="file"
@@ -71,9 +84,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import { CATEGORIAS_DOCUMENTO } from '@/utils/documento'
 import { toastError, toastSuccess } from '@/utils/alerts'
 import LabelHint from '@/components/ui/LabelHint.vue'
 
@@ -88,9 +102,15 @@ const form = reactive({
   direccion: '',
 })
 
+const docMeta = reactive({
+  categoria: '',
+  fechaVencimiento: '',
+})
+
 const router = useRouter()
 const loading = ref(false)
 const archivos = ref([])
+const categorias = ref([...CATEGORIAS_DOCUMENTO])
 
 function onArchivosChange(event) {
   archivos.value = Array.from(event.target.files || [])
@@ -110,7 +130,10 @@ async function onSubmit() {
     })
     const idProveedor = resultado?.id
     if (idProveedor && archivos.value.length) {
-      await api.proveedores.subirDocumentos(idProveedor, archivos.value)
+      await api.proveedores.subirDocumentos(idProveedor, archivos.value, {
+        categoria: docMeta.categoria || undefined,
+        fechaVencimiento: docMeta.fechaVencimiento || undefined,
+      })
     }
     toastSuccess('Proveedor registrado correctamente.')
     router.push({ name: 'proveedores' })
@@ -120,6 +143,15 @@ async function onSubmit() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    const cats = await api.documentos.categorias()
+    if (Array.isArray(cats) && cats.length) categorias.value = cats
+  } catch {
+    /* usa catálogo local */
+  }
+})
 </script>
 
 <style scoped>
@@ -136,5 +168,9 @@ async function onSubmit() {
   margin: 8px 0 0;
   font-size: 13px;
   color: var(--filasur-muted);
+}
+
+.docs-meta {
+  margin-bottom: 12px;
 }
 </style>

@@ -39,7 +39,7 @@ Configura `VITE_BACKEND_URL` en `.env` con la URL base del backend, incluyendo `
 | Catálogos | `/criterios` | Criterios |
 | Catálogos | `/unidades` | Unidades de medida |
 | Catálogos | `/productos` | Productos / Materiales |
-| Catálogos | `/documentos` | Documentos |
+| Catálogos | `/documentos` | Gestión documental (listar, cargar, descargar, eliminar) |
 | Seguridad | `/usuarios` | Gestión de usuarios |
 | Seguridad | `/roles` | Gestión de roles |
 | Sistema | `/configuracion` | Configuración |

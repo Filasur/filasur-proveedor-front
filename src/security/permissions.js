@@ -11,7 +11,7 @@ export const ROLE_GROUPS = {
   evaluaciones: [ROLES.admin, ROLES.compras, ROLES.calidad, ROLES.logistica],
   reportes: [ROLES.admin, ROLES.compras],
   catalogos: [ROLES.admin, ROLES.compras],
-  documentos: [ROLES.admin, ROLES.logistica],
+  documentos: [ROLES.admin, ROLES.compras, ROLES.logistica],
 }
 
 export function hasRole(user, roles = []) {

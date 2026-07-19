@@ -1,3 +1,11 @@
+export const CATEGORIAS_DOCUMENTO = [
+  'Ficha técnica',
+  'Certificado',
+  'RUC / Constancia',
+  'Contrato',
+  'Otro',
+]
+
 const apiBase = () => (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
 
 /** URL base del servidor (sin sufijo /api) para archivos estáticos /uploads */

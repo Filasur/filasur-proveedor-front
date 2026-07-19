@@ -81,22 +81,80 @@
         </div>
 
         <div v-if="tab === 'documentos'" class="card">
-          <h3>Documentos</h3>
+          <div class="section-head">
+            <h3>Documentos</h3>
+            <button
+              v-if="puedeGestionarDocs"
+              type="button"
+              class="btn btn-ghost"
+              @click="mostrarCarga = !mostrarCarga"
+            >
+              {{ mostrarCarga ? 'Cancelar' : 'Cargar documentos' }}
+            </button>
+          </div>
+
+          <form v-if="mostrarCarga && puedeGestionarDocs" class="upload-form" @submit.prevent="onSubirDocs">
+            <div class="form-grid two">
+              <div>
+                <LabelHint label="Categoría" hint="Tipo documental de negocio." />
+                <select v-model="carga.categoria">
+                  <option value="">Sin categoría</option>
+                  <option v-for="c in categorias" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+              <div>
+                <LabelHint label="Fecha de vencimiento" hint="Opcional, para certificados con vigencia." />
+                <input v-model="carga.fechaVencimiento" type="date" />
+              </div>
+              <div class="full">
+                <LabelHint label="Archivos" hint="PDF, DOC, DOCX, PNG o JPG." />
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  @change="onArchivosChange"
+                />
+                <p v-if="archivos.length" class="archivos-hint">
+                  {{ archivos.length }} archivo(s) seleccionado(s)
+                </p>
+              </div>
+            </div>
+            <div class="upload-actions">
+              <button class="btn btn-primary" type="submit" :disabled="subiendo || !archivos.length">
+                {{ subiendo ? 'Subiendo...' : 'Subir' }}
+              </button>
+            </div>
+          </form>
+
           <ul class="doc-list">
             <li v-for="d in proveedor.documentos" :key="d.id">
               <span class="doc-icon">{{ d.tipo || 'DOC' }}</span>
               <div class="doc-info">
-                <strong>{{ d.nombre }}</strong> - 
-                <small>{{ d.tipo }} · {{ d.tamano }}</small>
+                <strong>{{ d.nombre }}</strong>
+                <small>
+                  {{ d.categoria ? `${d.categoria} · ` : '' }}{{ d.tipo }} · {{ d.tamano }}
+                  · Carga: {{ d.fecha }}
+                  <template v-if="d.fechaVencimiento"> · Vence: {{ d.fechaVencimiento }}</template>
+                </small>
               </div>
-              <button
-                v-if="puedeDescargarDoc(d)"
-                type="button"
-                class="link-action btn-link"
-                @click="onDescargarDoc(d)"
-              >
-                Descargar
-              </button>
+              <div class="doc-actions">
+                <button
+                  v-if="puedeDescargarDoc(d)"
+                  type="button"
+                  class="link-action btn-link"
+                  @click="onDescargarDoc(d)"
+                >
+                  Descargar
+                </button>
+                <button
+                  v-if="puedeGestionarDocs"
+                  type="button"
+                  class="link-action btn-link danger"
+                  @click="onEliminarDoc(d)"
+                >
+                  Eliminar
+                </button>
+              </div>
             </li>
           </ul>
           <p v-if="!proveedor.documentos?.length" class="empty-state">Sin documentos adjuntos.</p>
@@ -122,34 +180,34 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
-import { descargarDocumento, puedeDescargarDocumento } from '@/utils/documento'
-import { toastError } from '@/utils/alerts'
+import { useAuthStore } from '@/stores/auth'
+import { ROLE_GROUPS, hasRole } from '@/security/permissions'
+import { CATEGORIAS_DOCUMENTO, descargarDocumento, puedeDescargarDocumento } from '@/utils/documento'
+import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-
-function puedeDescargarDoc(doc) {
-  return puedeDescargarDocumento(doc)
-}
-
-async function onDescargarDoc(doc) {
-  try {
-    await descargarDocumento(doc)
-  } catch (e) {
-    toastError(e.message || 'Error al descargar.')
-  }
-}
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import ThHint from '@/components/ui/ThHint.vue'
+import LabelHint from '@/components/ui/LabelHint.vue'
 
 const route = useRoute()
+const auth = useAuthStore()
 const proveedor = ref(null)
 const loading = ref(true)
 const tab = ref('info')
+const mostrarCarga = ref(false)
+const subiendo = ref(false)
+const archivos = ref([])
+const categorias = ref([...CATEGORIAS_DOCUMENTO])
+const carga = ref({ categoria: '', fechaVencimiento: '' })
+
 const tabs = [
   { id: 'info', label: 'Información general' },
   { id: 'evaluaciones', label: 'Evaluaciones' },
   { id: 'documentos', label: 'Documentos' },
   { id: 'historial', label: 'Bitácora' },
 ]
+
+const puedeGestionarDocs = computed(() => hasRole(auth.user, ROLE_GROUPS.documentos))
 
 const iniciales = computed(() =>
   (proveedor.value?.razonSocial || 'PR')
@@ -160,9 +218,73 @@ const iniciales = computed(() =>
     .toUpperCase()
 )
 
+function puedeDescargarDoc(doc) {
+  return puedeDescargarDocumento(doc)
+}
+
+function onArchivosChange(event) {
+  archivos.value = Array.from(event.target.files || [])
+}
+
+async function onDescargarDoc(doc) {
+  try {
+    await descargarDocumento(doc)
+  } catch (e) {
+    toastError(e.message || 'Error al descargar.')
+  }
+}
+
+async function onEliminarDoc(doc) {
+  const ok = await confirmAction({
+    title: 'Eliminar documento',
+    text: `¿Eliminar "${doc.nombre}"?`,
+    icon: 'warning',
+    confirmText: 'Eliminar',
+    danger: true,
+  })
+  if (!ok) return
+
+  try {
+    await api.documentos.eliminar(doc.id)
+    proveedor.value.documentos = (proveedor.value.documentos || []).filter((d) => d.id !== doc.id)
+    toastSuccess('Documento eliminado.')
+  } catch (e) {
+    toastError(e.message || 'No se pudo eliminar.')
+  }
+}
+
+async function onSubirDocs() {
+  if (!archivos.value.length) {
+    toastError('Seleccione al menos un archivo.')
+    return
+  }
+  subiendo.value = true
+  try {
+    await api.proveedores.subirDocumentos(proveedor.value.id, archivos.value, {
+      categoria: carga.value.categoria || undefined,
+      fechaVencimiento: carga.value.fechaVencimiento || undefined,
+    })
+    toastSuccess('Documentos cargados.')
+    mostrarCarga.value = false
+    archivos.value = []
+    carga.value = { categoria: '', fechaVencimiento: '' }
+    proveedor.value = await api.proveedores.obtener(route.params.id)
+  } catch (e) {
+    toastError(e.message || 'No se pudieron subir los documentos.')
+  } finally {
+    subiendo.value = false
+  }
+}
+
 onMounted(async () => {
   try {
-    proveedor.value = await api.proveedores.obtener(route.params.id)
+    if (!auth.token) auth.hydrateFromStorage()
+    const [p, cats] = await Promise.all([
+      api.proveedores.obtener(route.params.id),
+      api.documentos.categorias().catch(() => CATEGORIAS_DOCUMENTO),
+    ])
+    proveedor.value = p
+    if (Array.isArray(cats) && cats.length) categorias.value = cats
   } catch (e) {
     toastError(e.message || 'No se pudo cargar el proveedor.')
   } finally {
@@ -202,7 +324,9 @@ onMounted(async () => {
   padding: 12px 0;
   border-bottom: 1px solid var(--filasur-border);
 }
-.doc-info { flex: 1; min-width: 0; }
+.doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.doc-info small { color: var(--filasur-muted); }
+.doc-actions { display: flex; gap: 12px; flex-shrink: 0; }
 .btn-link {
   background: none;
   border: none;
@@ -210,7 +334,12 @@ onMounted(async () => {
   cursor: pointer;
   font: inherit;
 }
+.btn-link.danger { color: var(--filasur-danger, #cf1322); }
 .doc-icon { background: #fff2f0; color: #cf1322; padding: 8px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+.upload-form { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--filasur-border); }
+.upload-form .full { grid-column: 1 / -1; }
+.upload-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.archivos-hint { margin: 8px 0 0; font-size: 13px; color: var(--filasur-muted); }
 .timeline { list-style: none; padding: 0; }
 .timeline li { padding: 12px 0; border-bottom: 1px solid var(--filasur-border); }
 .timeline time { font-size: 12px; color: var(--filasur-muted); }

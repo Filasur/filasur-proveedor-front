@@ -16,7 +16,7 @@ function unwrapApiPayload(body) {
 
 async function request(path, options = {}) {
   const headers = {
-    'Content-Type': 'application/json',
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers || {}),
   }
   const token = localStorage.getItem('filasur_token')
@@ -70,11 +70,13 @@ const realApi = {
     obtener: (id) => request(`/proveedores/${id}`),
     registrar: (body) => request('/proveedores', { method: 'POST', body: JSON.stringify(body) }),
     actualizar: (id, body) => request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-    subirDocumentos: (idProveedor, archivos) => {
+    subirDocumentos: (idProveedor, archivos, meta = {}) => {
       const form = new FormData()
       for (const file of archivos) {
         form.append('archivos', file)
       }
+      if (meta.categoria) form.append('categoria', meta.categoria)
+      if (meta.fechaVencimiento) form.append('fechaVencimiento', meta.fechaVencimiento)
       return requestForm(`/proveedores/${idProveedor}/documentos`, form)
     },
   },
@@ -118,7 +120,9 @@ const realApi = {
       request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   },
   documentos: {
-    listar: () => request('/documentos'),
+    listar: (params) => request(`/documentos?${new URLSearchParams(params || {})}`),
+    categorias: () => request('/documentos/categorias'),
+    eliminar: (id) => request(`/documentos/${id}`, { method: 'DELETE' }),
   },
   usuarios: {
     listar: () => request('/usuarios'),
