@@ -303,9 +303,19 @@ onMounted(async () => {
     sincronizarCriterios()
     const idBorrador = Number(route.query.id)
     if (Number.isInteger(idBorrador) && idBorrador > 0) {
-      const borrador = await api.evaluaciones.obtenerBorrador(idBorrador)
-      aplicarBorrador(borrador)
-      toastSuccess('Borrador cargado para continuar la evaluación.')
+      try {
+        const borrador = await api.evaluaciones.obtenerBorrador(idBorrador)
+        aplicarBorrador(borrador)
+        toastSuccess('Borrador cargado para continuar la evaluación.')
+      } catch (e) {
+        toastError(
+          e.message === 'Borrador no encontrado'
+            ? 'Esta evaluación ya no se puede editar (está aprobada, rechazada o finalizada). Se abrirá la consolidación.'
+            : e.message || 'No se pudo cargar el borrador.',
+        )
+        router.replace({ name: 'consolidacion', query: { id: idBorrador } })
+        return
+      }
     }
   } catch (e) {
     toastError(e.message || 'No se pudieron cargar proveedores o criterios.')

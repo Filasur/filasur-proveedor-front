@@ -16,6 +16,11 @@ app.use(createNotivue({
   limit: 4,
   enqueue: true,
   avoidDuplicates: true,
+  notifications: {
+    global: {
+      duration: 5000,
+    },
+  },
 }))
 app.use(router)
 app.mount('#app')
