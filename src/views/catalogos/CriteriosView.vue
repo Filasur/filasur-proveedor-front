@@ -8,7 +8,8 @@
         <thead>
           <tr>
             <ThHint label="Criterio" hint="Nombre del aspecto a evaluar." />
-            <ThHint label="Área" hint="Departamento que califica este criterio." />
+            <ThHint label="Área" hint="Departamento de negocio del criterio." />
+            <ThHint label="Rol responsable" hint="Rol del sistema que califica este criterio." />
             <ThHint label="Peso (%)" hint="Influencia en el puntaje final (suma 100% entre criterios activos)." />
             <ThHint label="Estado" hint="Si el criterio está activo en nuevas evaluaciones." />
           </tr>
@@ -17,6 +18,7 @@
           <tr v-for="c in criterios" :key="c.id">
             <td>{{ c.nombre }}</td>
             <td>{{ c.area }}</td>
+            <td>{{ rolParaArea(c.area) }}</td>
             <td>{{ c.peso }}%</td>
             <td><StatusBadge :status="c.activo ? 'Activo' : 'Inactivo'" /></td>
           </tr>
@@ -34,6 +36,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import api from '@/services/api'
+import { rolParaArea } from '@/utils/areaEvaluacion'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 

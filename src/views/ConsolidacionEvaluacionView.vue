@@ -7,7 +7,10 @@
     </nav>
 
     <h2 class="page-title">Consolidación de evaluación</h2>
-    <p class="page-subtitle">Promedio automático, resultado final y decisión por área</p>
+    <p class="page-subtitle">
+      Promedio automático, resultado final y decisión. La aprobación o rechazo la realizan
+      <strong>Compras</strong> o <strong>Administrador</strong>.
+    </p>
 
     <div class="card toolbar-row">
       <div class="field">
@@ -33,11 +36,16 @@
 
       <section class="card">
         <h3>Resultados por áreas</h3>
+        <p class="section-hint">
+          Cada área de criterio está asignada a un rol del sistema:
+          Comercial y Costos → Compras; Calidad → Calidad; Logística → Logística.
+        </p>
         <table class="data-table">
           <thead>
             <tr>
-              <ThHint label="Área evaluadora"  />
-              <ThHint label="Evaluador"  />
+              <ThHint label="Área del criterio" />
+              <ThHint label="Rol evaluador" />
+              <ThHint label="Usuario" />
               <ThHint label="Puntaje (0-5)" />
               <ThHint label="Peso (%)" />
               <ThHint label="Puntaje ponderado" />
@@ -47,6 +55,7 @@
           <tbody>
             <tr v-for="row in c.areas" :key="row.area">
               <td>{{ row.area }}</td>
+              <td>{{ rolParaArea(row.area) }}</td>
               <td>{{ row.evaluador || '—' }}</td>
               <td>{{ row.puntaje }}</td>
               <td>{{ row.peso }}%</td>
@@ -54,7 +63,7 @@
               <td>{{ row.observaciones || '—' }}</td>
             </tr>
             <tr v-if="!c.areas?.length">
-              <td colspan="6" class="empty-state">Sin resultados por área para esta evaluación.</td>
+              <td colspan="7" class="empty-state">Sin resultados por área para esta evaluación.</td>
             </tr>
           </tbody>
         </table>
@@ -84,8 +93,27 @@
           <p>{{ textoResultado }}</p>
         </article>
         <div class="result-actions">
-          <button type="button" class="btn btn-primary" @click="aprobar">Aprobar proveedor</button>
-          <button type="button" class="btn btn-sesion" @click="rechazar">Rechazar</button>
+          <p v-if="!puedeAprobar" class="aprobacion-hint">
+            Solo Compras o Administrador pueden aprobar o rechazar en consolidación.
+          </p>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="!puedeAprobar"
+            :title="puedeAprobar ? undefined : 'Requiere rol Compras o Administrador'"
+            @click="aprobar"
+          >
+            Aprobar proveedor
+          </button>
+          <button
+            type="button"
+            class="btn btn-sesion"
+            :disabled="!puedeAprobar"
+            :title="puedeAprobar ? undefined : 'Requiere rol Compras o Administrador'"
+            @click="rechazar"
+          >
+            Rechazar
+          </button>
           <!-- <button type="button" class="btn btn-ghost" disabled>Registrar en ERP</button> -->
         </div>
       </section>
@@ -102,8 +130,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEvaluacionStore } from '@/stores/evaluacion'
+import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
+import { puedeAprobarEvaluacion, rolParaArea } from '@/utils/areaEvaluacion'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
@@ -111,8 +141,11 @@ import Swal from 'sweetalert2'
 
 const route = useRoute()
 const store = useEvaluacionStore()
+const auth = useAuthStore()
 const evalId = ref('')
 const evalIds = ref([])
+
+const puedeAprobar = computed(() => puedeAprobarEvaluacion(auth.user?.rol))
 
 function parseEvaluacionId(value) {
   const id = Number(value)
@@ -287,6 +320,17 @@ onMounted(async () => {
 .result-box.rejected strong { color: var(--filasur-danger); }
 .result-box.observed { border-color: var(--filasur-warning); background: #fffbe6; }
 .result-actions { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.aprobacion-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--filasur-muted);
+  max-width: 220px;
+}
+.section-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--filasur-muted);
+}
 .obs { margin: 0; color: var(--filasur-muted); }
 @media (max-width: 900px) {
   .result-row { grid-template-columns: 1fr; }

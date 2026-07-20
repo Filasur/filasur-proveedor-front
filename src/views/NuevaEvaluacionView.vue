@@ -48,8 +48,13 @@
 
       <div v-else-if="step === 1">
         <p class="step-hint">
-          Cada criterio es calificado por el área indicada. Ingrese el puntaje de cada uno (0–100).
+          Cada criterio lo califica el <strong>rol</strong> indicado. El administrador puede completar todos los puntajes.
         </p>
+        <div class="mapeo-roles card-inline">
+          <span v-for="m in RESUMEN_MAPEO_AREAS" :key="m.area" class="mapeo-chip">
+            {{ m.area }} → {{ m.rol }}
+          </span>
+        </div>
         <div class="form-grid puntajes-grid">
           <div v-for="c in criteriosActivos" :key="c.id" class="puntaje-row">
             <div class="puntaje-row-head">
@@ -61,7 +66,7 @@
             </div>
             <label :for="`puntaje-${c.id}`" class="criterio-nombre">
               {{ c.nombre }}
-              <span class="area-hint">Califica: {{ c.area }}</span>
+              <span class="area-hint">{{ etiquetaCalificador(c.area) }}</span>
             </label>
             <input
               :id="`puntaje-${c.id}`"
@@ -72,6 +77,8 @@
               step="1"
               placeholder="0–100"
               :class="{ 'input-invalid': erroresPuntaje[c.id] }"
+              :disabled="!puedeCalificar(c.area)"
+              :title="puedeCalificar(c.area) ? '' : `Solo ${rolParaArea(c.area)} o Administrador pueden calificar este criterio.`"
               @input="onPuntajeInput(c.id, $event)"
               @blur="onPuntajeBlur(c.id, $event)"
             />
@@ -101,7 +108,7 @@
           <thead>
             <tr>
               <ThHint label="Criterio" />
-              <ThHint label="Área evaluadora"/>
+              <ThHint label="Rol evaluador"/>
               <ThHint label="Peso"/>
               <ThHint label="Puntaje"/>
             </tr>
@@ -109,7 +116,7 @@
           <tbody>
             <tr v-for="c in criteriosActivos" :key="c.id">
               <td>{{ c.nombre }}</td>
-              <td>{{ c.area }}</td>
+              <td>{{ etiquetaCalificador(c.area) }}</td>
               <td>{{ c.peso }}%</td>
               <td>{{ puntajes[c.id] ?? '-' }}</td>
             </tr>
@@ -134,7 +141,7 @@
             Siguiente
           </button>
           <button v-else type="button" class="btn btn-primary" :disabled="saving" @click="guardar">
-            {{ saving ? 'Guardando...' : 'Finalizar evaluación' }}
+            {{ textoBotonGuardar }}
           </button>
         </div>
       </div>
@@ -147,7 +154,14 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useEvaluacionStore } from '@/stores/evaluacion'
+import { useAuthStore } from '@/stores/auth'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import {
+  etiquetaCalificador,
+  puedeCalificarArea,
+  RESUMEN_MAPEO_AREAS,
+  rolParaArea,
+} from '@/utils/areaEvaluacion'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
@@ -164,6 +178,7 @@ const saving = ref(false)
 const PUNTAJE_MIN = 0
 const PUNTAJE_MAX = 100
 const evalStore = useEvaluacionStore()
+const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -181,6 +196,18 @@ const form = reactive({
 const criteriosActivos = computed(() =>
   criterios.value.filter((c) => c.activo !== false),
 )
+
+const criteriosACalificar = computed(() =>
+  criteriosActivos.value.filter((c) => puedeCalificar(c.area)),
+)
+
+const todosLosPuntajesCompletos = computed(() =>
+  criteriosActivos.value.every((c) => puntajeValido(puntajes[c.id])),
+)
+
+function puedeCalificar(area) {
+  return puedeCalificarArea(auth.user?.rol, area)
+}
 
 const proveedorLabel = computed(
   () => proveedores.value.find((p) => p.id === Number(form.proveedorId))?.razonSocial || '-',
@@ -207,7 +234,7 @@ const puntajeEstimado = computed(() => {
 const canNext = computed(() => {
   if (step.value === 0) return Boolean(form.proveedorId && form.periodo?.trim())
   if (step.value === 1) {
-    return criteriosActivos.value.every((c) => puntajeValido(puntajes[c.id]) && !erroresPuntaje[c.id])
+    return criteriosACalificar.value.every((c) => puntajeValido(puntajes[c.id]) && !erroresPuntaje[c.id])
   }
   return true
 })
@@ -227,7 +254,7 @@ const avisoSiguiente = computed(() => {
   }
 
   if (step.value === 1) {
-    const faltan = criteriosActivos.value.filter((c) => !puntajeValido(puntajes[c.id]))
+    const faltan = criteriosACalificar.value.filter((c) => !puntajeValido(puntajes[c.id]))
     if (!faltan.length) {
       return 'Corrija los puntajes marcados en rojo antes de continuar.'
     }
@@ -322,23 +349,42 @@ onMounted(async () => {
   }
 })
 
+const textoBotonGuardar = computed(() => {
+  if (saving.value) return 'Guardando...'
+  return todosLosPuntajesCompletos.value ? 'Finalizar evaluación' : 'Guardar borrador'
+})
+
 async function guardar() {
   sincronizarCriterios()
   saving.value = true
+  const finalizar = todosLosPuntajesCompletos.value
   try {
+    const puntajesPermitidos = Object.fromEntries(
+      criteriosACalificar.value
+        .filter((c) => puntajeValido(puntajes[c.id]))
+        .map((c) => [String(c.id), puntajes[c.id]]),
+    )
     const resultado = await evalStore.guardarBorrador({
       ...form,
-      puntajes: { ...puntajes },
-      finalizar: true,
+      puntajes: puntajesPermitidos,
+      finalizar,
     })
-    toastSuccess('Evaluación guardada. Puede revisar la consolidación.')
+    if (finalizar) {
+      toastSuccess('Evaluación guardada. Puede revisar la consolidación.')
+    } else {
+      toastSuccess('Borrador guardado. Faltan puntajes de otras áreas o roles.')
+    }
     evalStore.resetBorrador()
     const id = resultado?.id
-    router.push(
-      id
-        ? { name: 'consolidacion', query: { id } }
-        : { name: 'consolidacion' },
-    )
+    if (finalizar) {
+      router.push(
+        id
+          ? { name: 'consolidacion', query: { id } }
+          : { name: 'consolidacion' },
+      )
+    } else if (id) {
+      form.id = id
+    }
   } catch (e) {
     toastError(e.message || 'No se pudo guardar la evaluación.')
   } finally {
@@ -420,6 +466,26 @@ async function guardar() {
   margin: 0 0 16px;
   color: var(--filasur-muted);
   font-size: 14px;
+}
+
+.mapeo-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid var(--filasur-border);
+  border-radius: 6px;
+}
+
+.mapeo-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--filasur-border);
+  color: var(--filasur-text);
 }
 
 .puntajes-grid .full {

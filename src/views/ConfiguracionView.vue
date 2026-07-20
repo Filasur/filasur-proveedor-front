@@ -58,6 +58,7 @@
           <tr>
             <ThHint label="Criterio" />
             <ThHint label="Área" />
+            <ThHint label="Rol responsable" />
             <ThHint label="Peso (%)" />
             <ThHint label="Activo" />
           </tr>
@@ -66,6 +67,7 @@
           <tr v-for="c in criterios" :key="c.id">
             <td>{{ c.nombre }}</td>
             <td>{{ c.area }}</td>
+            <td>{{ rolParaArea(c.area) }}</td>
             <td>
               <input
                 v-model.number="c.peso"
@@ -110,6 +112,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import { rolParaArea } from '@/utils/areaEvaluacion'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import ThHint from '@/components/ui/ThHint.vue'
