@@ -3,15 +3,24 @@
     <div class="page-head">
       <div>
         <h2 class="page-title">Evaluaciones pendientes</h2>
-        <p class="page-subtitle">Lista de evaluaciones en curso con filtros por estado</p>
+        <p class="page-subtitle">
+          Flujo por partes: Calidad → Compras → Logística. Continúe solo cuando sea el turno de su rol.
+        </p>
       </div>
-      <RouterLink :to="{ name: 'nueva-evaluacion' }" class="btn btn-primary">Nueva evaluación</RouterLink>
+      <RouterLink
+        v-if="puedeIniciar"
+        :to="{ name: 'nueva-evaluacion' }"
+        class="btn btn-primary"
+      >
+        Nueva evaluación
+      </RouterLink>
     </div>
 
     <div class="card toolbar-row">
       <div class="field">
         <label>Estado</label>
         <select v-model="filtroEstado">
+          <option value="mi-turno">Mi turno</option>
           <option value="pendientes">Solo pendientes</option>
           <option value="">Todos</option>
           <option value="En proceso">En proceso</option>
@@ -34,7 +43,7 @@
           <tr>
             <th>Proveedor</th>
             <th>Producto / Material</th>
-            <th>Áreas pendientes</th>
+            <th>Turno actual</th>
             <th>Estado</th>
             <th>Orden compra</th>
             <th>Acción</th>
@@ -44,7 +53,7 @@
           <tr v-for="e in filtrados" :key="e.id">
             <td>{{ e.proveedor }}</td>
             <td>{{ e.producto || '—' }}</td>
-            <td>{{ etiquetaAreas(e) }}</td>
+            <td>{{ etiquetaTurno(e) }}</td>
             <td><StatusBadge :status="e.estado" /></td>
             <td>{{ e.ordenCompra || '-' }}</td>
             <td class="col-acciones">
@@ -75,20 +84,29 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+import { ROLES } from '@/security/permissions'
+import { puedeIniciarEvaluacion } from '@/utils/areaEvaluacion'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 /** Solo estos estados admiten edición de borrador en el asistente. */
 const ESTADOS_EDITABLES = new Set(['En proceso', 'En evaluación'])
 
+const auth = useAuthStore()
 const evaluaciones = ref([])
-const filtroEstado = ref('pendientes')
+const filtroEstado = ref('mi-turno')
 const busqueda = ref('')
+
+const puedeIniciar = computed(() => puedeIniciarEvaluacion(auth.user?.rol))
+const esAdmin = computed(() => auth.user?.rol === ROLES.admin)
 
 const filtrados = computed(() => {
   const q = busqueda.value.toLowerCase()
   return evaluaciones.value.filter((e) => {
     let matchE = true
-    if (filtroEstado.value === 'pendientes') {
+    if (filtroEstado.value === 'mi-turno') {
+      matchE = ESTADOS_EDITABLES.has(e.estado) && esMiTurnoItem(e)
+    } else if (filtroEstado.value === 'pendientes') {
       matchE = ESTADOS_EDITABLES.has(e.estado)
     } else if (filtroEstado.value) {
       matchE = e.estado === filtroEstado.value
@@ -98,13 +116,19 @@ const filtrados = computed(() => {
   })
 })
 
-function puedeContinuar(e) {
-  return ESTADOS_EDITABLES.has(e.estado)
+function esMiTurnoItem(e) {
+  if (esAdmin.value) return Boolean(e.rolTurno)
+  return e.rolTurno === auth.user?.rol
 }
 
-function etiquetaAreas(e) {
-  if (!e.areasPendientes) return 'Completa'
-  return `${e.areasPendientes} área(s)`
+function puedeContinuar(e) {
+  return ESTADOS_EDITABLES.has(e.estado) && (esAdmin.value || e.rolTurno === auth.user?.rol)
+}
+
+function etiquetaTurno(e) {
+  if (!ESTADOS_EDITABLES.has(e.estado)) return '—'
+  if (!e.rolTurno) return 'Completa'
+  return e.rolTurno
 }
 
 onMounted(async () => {
@@ -120,22 +144,40 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
 }
-.col-acciones {
-  width: 1%;
-  white-space: nowrap;
-  vertical-align: middle;
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
 }
-.acciones {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
 }
-.acciones .link-action {
-  display: inline;
-  line-height: 1.3;
-  border: none;
-  padding: 0;
-  margin: 0;
+
+.field.grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.col-acciones .acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.link-action {
+  color: var(--filasur-primary);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.link-action:hover {
+  text-decoration: underline;
 }
 </style>

@@ -47,16 +47,48 @@
       </div>
 
       <div v-else-if="step === 1">
+        <ol class="fases-stepper">
+          <li
+            v-for="(fase, i) in ORDEN_FASES"
+            :key="fase"
+            :class="{
+              active: indiceFase === i,
+              done: indiceFase > i,
+              mine: fase === auth.user?.rol,
+            }"
+          >
+            <span>{{ i + 1 }}</span> {{ fase }}
+          </li>
+        </ol>
         <p class="step-hint">
-          Cada criterio lo califica el <strong>rol</strong> indicado. El administrador puede completar todos los puntajes.
+          <template v-if="esAdmin">
+            Como administrador puede completar todos los puntajes (sin respetar el orden por roles).
+          </template>
+          <template v-else-if="esMiTurno">
+            Es su turno (<strong>{{ auth.user?.rol }}</strong>). Complete solo sus criterios y guarde el
+            borrador; luego continúa el siguiente rol
+            (orden: Calidad → Compras → Logística).
+          </template>
+          <template v-else>
+            {{ avisoTurno || 'Aún no es su turno de evaluar.' }}
+          </template>
         </p>
-        <div class="mapeo-roles card-inline">
-          <span v-for="m in RESUMEN_MAPEO_AREAS" :key="m.area" class="mapeo-chip">
+        <div v-if="mapeoVisible.length" class="mapeo-roles card-inline">
+          <span v-for="m in mapeoVisible" :key="m.area" class="mapeo-chip">
             {{ m.area }} → {{ m.rol }}
           </span>
         </div>
-        <div class="form-grid puntajes-grid">
-          <div v-for="c in criteriosActivos" :key="c.id" class="puntaje-row">
+        <p v-if="!criteriosACalificar.length" class="empty-state">
+          No hay criterios activos asignados a su rol.
+        </p>
+        <div v-else-if="!esMiTurno && !esAdmin" class="aviso-turno card-inline">
+          {{ avisoTurno }}
+          <RouterLink :to="{ name: 'evaluaciones-pendientes' }" class="link-pendientes">
+            Ir a evaluaciones pendientes
+          </RouterLink>
+        </div>
+        <div v-else class="form-grid puntajes-grid">
+          <div v-for="c in criteriosACalificar" :key="c.id" class="puntaje-row">
             <div class="puntaje-row-head">
               <span class="area-badge">{{ c.area }}</span>
               <span class="peso">
@@ -77,8 +109,6 @@
               step="1"
               placeholder="0–100"
               :class="{ 'input-invalid': erroresPuntaje[c.id] }"
-              :disabled="!puedeCalificar(c.area)"
-              :title="puedeCalificar(c.area) ? '' : `Solo ${rolParaArea(c.area)} o Administrador pueden calificar este criterio.`"
               @input="onPuntajeInput(c.id, $event)"
               @blur="onPuntajeBlur(c.id, $event)"
             />
@@ -101,8 +131,16 @@
           <li><strong>Periodo:</strong> {{ form.periodo }}</li>
           <li><strong>Producto:</strong> {{ productoLabel }}</li>
           <li><strong>Orden de compra:</strong> {{ form.ordenCompra || '—' }}</li>
-          <li><strong>Criterios evaluados:</strong> {{ criteriosActivos.length }}</li>
-          <li><strong>Puntaje estimado:</strong> {{ puntajeEstimado }}%</li>
+          <li><strong>Criterios de su rol:</strong> {{ criteriosACalificar.length }}</li>
+          <li v-if="esAdmin"><strong>Puntaje estimado:</strong> {{ puntajeEstimado }}%</li>
+          <li v-else>
+            <strong>Estado:</strong>
+            {{
+              todosLosPuntajesCompletos
+                ? 'Todas las fases completas — puede finalizar'
+                : `Fase ${auth.user?.rol} lista — el siguiente rol continuará`
+            }}
+          </li>
         </ul>
         <table class="data-table resumen-tabla">
           <thead>
@@ -114,7 +152,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in criteriosActivos" :key="c.id">
+            <tr v-for="c in criteriosACalificar" :key="c.id">
               <td>{{ c.nombre }}</td>
               <td>{{ etiquetaCalificador(c.area) }}</td>
               <td>{{ c.peso }}%</td>
@@ -140,7 +178,7 @@
           >
             Siguiente
           </button>
-          <button v-else type="button" class="btn btn-primary" :disabled="saving" @click="guardar">
+          <button v-else type="button" class="btn btn-primary" :disabled="saving || !puedeGuardar" @click="guardar">
             {{ textoBotonGuardar }}
           </button>
         </div>
@@ -151,16 +189,22 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { useEvaluacionStore } from '@/stores/evaluacion'
 import { useAuthStore } from '@/stores/auth'
 import { toastError, toastSuccess } from '@/utils/alerts'
+import { ROLES } from '@/security/permissions'
 import {
   etiquetaCalificador,
   puedeCalificarArea,
+  puedeIniciarEvaluacion,
+  esTurnoDelRol,
+  faseActual,
+  indiceFaseActual,
+  mensajeEsperaTurno,
+  ORDEN_FASES,
   RESUMEN_MAPEO_AREAS,
-  rolParaArea,
 } from '@/utils/areaEvaluacion'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
@@ -201,6 +245,23 @@ const criteriosACalificar = computed(() =>
   criteriosActivos.value.filter((c) => puedeCalificar(c.area)),
 )
 
+const esAdmin = computed(() => auth.user?.rol === ROLES.admin)
+
+const indiceFase = computed(() => indiceFaseActual(criteriosActivos.value, puntajes))
+
+const esMiTurno = computed(() => esTurnoDelRol(auth.user?.rol, criteriosActivos.value, puntajes))
+
+const avisoTurno = computed(() =>
+  mensajeEsperaTurno(auth.user?.rol, criteriosActivos.value, puntajes),
+)
+
+const puedeGuardar = computed(() => esAdmin.value || esMiTurno.value)
+
+const mapeoVisible = computed(() => {
+  if (esAdmin.value) return RESUMEN_MAPEO_AREAS
+  return RESUMEN_MAPEO_AREAS.filter((m) => m.rol === auth.user?.rol)
+})
+
 const todosLosPuntajesCompletos = computed(() =>
   criteriosActivos.value.every((c) => puntajeValido(puntajes[c.id])),
 )
@@ -234,6 +295,7 @@ const puntajeEstimado = computed(() => {
 const canNext = computed(() => {
   if (step.value === 0) return Boolean(form.proveedorId && form.periodo?.trim())
   if (step.value === 1) {
+    if (!puedeGuardar.value) return false
     return criteriosACalificar.value.every((c) => puntajeValido(puntajes[c.id]) && !erroresPuntaje[c.id])
   }
   return true
@@ -254,6 +316,9 @@ const avisoSiguiente = computed(() => {
   }
 
   if (step.value === 1) {
+    if (!puedeGuardar.value) {
+      return avisoTurno.value || 'Aún no es su turno de evaluar.'
+    }
     const faltan = criteriosACalificar.value.filter((c) => !puntajeValido(puntajes[c.id]))
     if (!faltan.length) {
       return 'Corrija los puntajes marcados en rojo antes de continuar.'
@@ -320,7 +385,23 @@ function onSiguiente() {
   step.value++
 }
 
+const textoBotonGuardar = computed(() => {
+  if (saving.value) return 'Guardando...'
+  return todosLosPuntajesCompletos.value ? 'Finalizar evaluación' : 'Guardar y pasar al siguiente rol'
+})
+
 onMounted(async () => {
+  const idBorrador = Number(route.query.id)
+  const esContinuacion = Number.isInteger(idBorrador) && idBorrador > 0
+
+  if (!esContinuacion && !puedeIniciarEvaluacion(auth.user?.rol)) {
+    toastError(
+      'Solo Calidad inicia una evaluación nueva. Use Evaluaciones pendientes cuando sea su turno (después de Calidad → Compras → Logística).',
+    )
+    router.replace({ name: 'evaluaciones-pendientes' })
+    return
+  }
+
   try {
     ;[proveedores.value, productos.value, criterios.value] = await Promise.all([
       api.proveedores.listar(),
@@ -328,12 +409,20 @@ onMounted(async () => {
       api.evaluaciones.listarCriterios(),
     ])
     sincronizarCriterios()
-    const idBorrador = Number(route.query.id)
-    if (Number.isInteger(idBorrador) && idBorrador > 0) {
+    if (esContinuacion) {
       try {
         const borrador = await api.evaluaciones.obtenerBorrador(idBorrador)
         aplicarBorrador(borrador)
-        toastSuccess('Borrador cargado para continuar la evaluación.')
+        const turno = faseActual(criteriosActivos.value, puntajes)
+        if (!esAdmin.value && !esMiTurno.value) {
+          toastError(
+            turno
+              ? `Aún no es su turno. Falta completar la fase de «${turno}».`
+              : 'Esta evaluación ya tiene todos los puntajes.',
+          )
+        } else {
+          toastSuccess('Borrador cargado para continuar la evaluación.')
+        }
       } catch (e) {
         toastError(
           e.message === 'Borrador no encontrado'
@@ -349,12 +438,11 @@ onMounted(async () => {
   }
 })
 
-const textoBotonGuardar = computed(() => {
-  if (saving.value) return 'Guardando...'
-  return todosLosPuntajesCompletos.value ? 'Finalizar evaluación' : 'Guardar borrador'
-})
-
 async function guardar() {
+  if (!puedeGuardar.value) {
+    toastError(avisoTurno.value || 'Aún no es su turno.')
+    return
+  }
   sincronizarCriterios()
   saving.value = true
   const finalizar = todosLosPuntajesCompletos.value
@@ -370,9 +458,19 @@ async function guardar() {
       finalizar,
     })
     if (finalizar) {
-      toastSuccess('Evaluación guardada. Puede revisar la consolidación.')
+      toastSuccess('Evaluación finalizada. Puede revisar la consolidación.')
     } else {
-      toastSuccess('Borrador guardado. Faltan puntajes de otras áreas o roles.')
+      const merged = { ...puntajes }
+      for (const [k, v] of Object.entries(puntajesPermitidos)) {
+        merged[Number(k)] = v
+        merged[k] = v
+      }
+      const siguienteTrasGuardar = faseActual(criteriosActivos.value, merged)
+      toastSuccess(
+        siguienteTrasGuardar
+          ? `Fase guardada. Siguiente turno: «${siguienteTrasGuardar}».`
+          : 'Borrador guardado.',
+      )
     }
     evalStore.resetBorrador()
     const id = resultado?.id
@@ -384,6 +482,7 @@ async function guardar() {
       )
     } else if (id) {
       form.id = id
+      router.push({ name: 'evaluaciones-pendientes' })
     }
   } catch (e) {
     toastError(e.message || 'No se pudo guardar la evaluación.')
@@ -565,5 +664,70 @@ async function guardar() {
 
 .resumen-tabla {
   margin-top: 8px;
+}
+
+.fases-stepper {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.fases-stepper li {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fafafa;
+  color: var(--filasur-muted);
+  font-size: 13px;
+  border: 1px solid var(--filasur-border);
+}
+
+.fases-stepper li span {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--filasur-border);
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+.fases-stepper li.active,
+.fases-stepper li.done {
+  background: rgba(24, 144, 255, 0.12);
+  color: var(--filasur-primary);
+  border-color: #91d5ff;
+}
+
+.fases-stepper li.active span,
+.fases-stepper li.done span {
+  background: var(--filasur-primary);
+  color: #fff;
+}
+
+.fases-stepper li.mine.active {
+  font-weight: 600;
+}
+
+.aviso-turno {
+  padding: 14px 16px;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  color: #ad4e00;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.link-pendientes {
+  color: var(--filasur-primary);
+  font-weight: 500;
+  text-decoration: none;
+  width: fit-content;
 }
 </style>

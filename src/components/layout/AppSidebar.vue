@@ -61,7 +61,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ROLE_GROUPS, MODULOS, hasAccess } from '@/security/permissions'
+import { ROLE_GROUPS, MODULOS, ROLES, hasAccess, hasRole } from '@/security/permissions'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -87,7 +87,7 @@ const allMenuGroups = [
     label: 'Evaluaciones',
     collapsible: true,
     items: [
-      { name: 'nueva-evaluacion', label: 'Nueva evaluación', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
+      { name: 'nueva-evaluacion', label: 'Nueva evaluación', roles: [ROLES.admin, ROLES.calidad], modulo: MODULOS.evaluaciones, strictRoles: true },
       { name: 'consolidacion', label: 'Consolidación', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
       { name: 'evaluaciones-pendientes', label: 'Evaluaciones pendientes', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
     ],
@@ -134,9 +134,12 @@ const menuGroups = computed(() =>
   allMenuGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) =>
-        hasAccess(auth.user, { roles: item.roles, modulo: item.modulo }),
-      ),
+      items: group.items.filter((item) => {
+        if (!hasAccess(auth.user, { roles: item.roles, modulo: item.modulo })) return false
+        // Nueva evaluación: solo Calidad/Admin aunque el módulo Evaluaciones esté asignado a otros roles
+        if (item.strictRoles) return hasRole(auth.user, item.roles)
+        return true
+      }),
     }))
     .filter((group) => group.items.length),
 )
