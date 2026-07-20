@@ -114,7 +114,7 @@
           >
             Rechazar
           </button>
-          <!-- <button type="button" class="btn btn-ghost" disabled>Registrar en ERP</button> -->
+          <!-- ERP fuera de alcance -->
         </div>
       </section>
 
@@ -163,7 +163,7 @@ const resultClass = computed(() => {
 
 const textoResultado = computed(() => {
   const t = c.value?.resultado || ''
-  if (t.includes('Exactus ERP')) return 'Proveedor apto'
+  if (t.includes('Exactus') || t.includes('ERP')) return 'Proveedor apto'
   return t
 })
 
@@ -192,7 +192,7 @@ async function cargar() {
 async function aprobar() {
   const ok = await confirmAction({
     title: '¿Aprobar proveedor?',
-    text: 'El proveedor quedará apto para registro en ERP.',
+    text: 'El proveedor quedará con estado APROBADO en el sistema.',
     icon: 'success',
     confirmText: 'Aprobar',
   })

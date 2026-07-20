@@ -100,6 +100,38 @@
           </tbody>
         </table>
       </section>
+
+      <section class="card">
+        <h3>
+          Documentos por vencer
+          <span v-if="data.resumen?.documentosPorVencer" class="badge-alerta">
+            {{ data.resumen.documentosPorVencer }}
+          </span>
+        </h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <ThHint label="Proveedor" hint="Empresa dueña del documento." />
+              <ThHint label="Archivo" hint="Nombre del documento cargado." />
+              <ThHint label="Categoría" hint="Tipo documental." />
+              <ThHint label="Vencimiento" hint="Fecha de caducidad del documento." />
+              <ThHint label="Estado" hint="Vencido o próximo a vencer." />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in data.documentosPorVencer" :key="d.id">
+              <td>{{ d.proveedor }}</td>
+              <td>{{ d.archivo }}</td>
+              <td>{{ d.categoria }}</td>
+              <td>{{ d.fechaVencimiento || '—' }}</td>
+              <td><StatusBadge :status="d.estado" /></td>
+            </tr>
+            <tr v-if="!data.documentosPorVencer?.length">
+              <td colspan="5" class="empty-state">No hay documentos próximos a vencer.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </template>
   </div>
 </template>
@@ -150,8 +182,8 @@ const kpis = computed(() => {
     {
       label: 'Proveedores aprobados',
       value: r.proveedoresAprobados ?? 0,
-      hint: 'Listos para registrar en ERP',
-      tooltip: 'Proveedores con resultado APROBADO y habilitados para integración ERP.',
+      hint: 'Con resultado aprobado',
+      tooltip: 'Proveedores con estado APROBADO en el sistema.',
       icon: '★',
       color: 'gold',
     },
@@ -356,6 +388,19 @@ onBeforeUnmount(() => chartInstance?.destroy())
   font-weight: 600;
   color: var(--filasur-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.badge-alerta {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ad4e00;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 10px;
+  vertical-align: middle;
 }
 
 @media (max-width: 1100px) {

@@ -181,7 +181,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import { ROLE_GROUPS, hasRole } from '@/security/permissions'
+import { ROLE_GROUPS, MODULOS, hasAccess } from '@/security/permissions'
 import { CATEGORIAS_DOCUMENTO, descargarDocumento, puedeDescargarDocumento } from '@/utils/documento'
 import { confirmAction, toastError, toastSuccess } from '@/utils/alerts'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -207,7 +207,9 @@ const tabs = [
   { id: 'historial', label: 'Bitácora' },
 ]
 
-const puedeGestionarDocs = computed(() => hasRole(auth.user, ROLE_GROUPS.documentos))
+const puedeGestionarDocs = computed(() =>
+  hasAccess(auth.user, { roles: ROLE_GROUPS.documentos, modulo: MODULOS.documentos }),
+)
 
 const iniciales = computed(() =>
   (proveedor.value?.razonSocial || 'PR')

@@ -22,24 +22,20 @@
       <div>
         <LabelHint
           label="Días alerta antes de vencimiento"
-          hint="Cuántos días antes del vencimiento se muestra alerta en el dashboard."
+          hint="Cuántos días antes del vencimiento de evaluaciones o documentos se muestra alerta en el dashboard."
         />
         <input v-model.number="config.diasAlertaVencimiento" type="number" min="1" />
       </div>
-      <div>
-        <LabelHint
-          label="Integración ERP"
-          hint="Sistema externo donde se registrarán proveedores aprobados (ej. Exactus)."
-        />
-        <input v-model="config.integracionErp" />
-      </div>
       <div class="full checkbox-row">
         <label>
-          <input v-model="config.notificacionesEmail" type="checkbox" />
+          <input v-model="config.notificacionesEmail" type="checkbox" :true-value="1" :false-value="0" />
           Enviar notificaciones por correo
-          <AppTooltip text="Envía avisos por correo cuando haya evaluaciones por vencer o resultados." />
+          <AppTooltip text="Si está activo y el servidor tiene SMTP configurado, se envían avisos al aprobar/rechazar evaluaciones y al recuperar contraseña." />
         </label>
       </div>
+      <p class="smtp-hint full">
+        Las notificaciones requieren configuración SMTP en el API (<code>Smtp:Enabled=true</code> y host/credenciales).
+      </p>
       <div class="actions full">
         <button class="btn btn-primary" type="submit" :disabled="loadingConfig">
           {{ loadingConfig ? 'Guardando...' : 'Guardar parámetros' }}
@@ -141,7 +137,13 @@ onMounted(async () => {
 async function guardarConfig() {
   loadingConfig.value = true
   try {
-    config.value = await api.configuracion.guardar({ ...config.value })
+    config.value = await api.configuracion.guardar({
+      umbralAprobacion: config.value.umbralAprobacion,
+      umbralObservado: config.value.umbralObservado,
+      diasAlertaVencimiento: config.value.diasAlertaVencimiento,
+      notificacionesEmail: config.value.notificacionesEmail ? 1 : 0,
+      integracionErp: config.value.integracionErp || '',
+    })
     toastSuccess('Parámetros guardados correctamente.')
   } catch (e) {
     toastError(e.message)
@@ -221,5 +223,10 @@ async function guardarCriterios() {
 }
 .suma-pesos--error strong {
   color: var(--filasur-danger);
+}
+.smtp-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--filasur-muted);
 }
 </style>

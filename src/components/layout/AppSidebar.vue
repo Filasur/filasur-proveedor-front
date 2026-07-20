@@ -61,7 +61,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ROLE_GROUPS, hasRole } from '@/security/permissions'
+import { ROLE_GROUPS, MODULOS, hasAccess } from '@/security/permissions'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -71,15 +71,15 @@ const allMenuGroups = [
   {
     id: 'main',
     collapsible: false,
-    items: [{ name: 'dashboard', label: 'Dashboard', roles: ROLE_GROUPS.evaluaciones }],
+    items: [{ name: 'dashboard', label: 'Dashboard', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones }],
   },
   {
     id: 'proveedores',
     label: 'Proveedores',
     collapsible: true,
     items: [
-      { name: 'proveedores', label: 'Listado de proveedores', roles: ROLE_GROUPS.proveedores },
-      { name: 'registro-proveedor', label: 'Registrar proveedor', roles: ROLE_GROUPS.proveedores },
+      { name: 'proveedores', label: 'Listado de proveedores', roles: ROLE_GROUPS.proveedores, modulo: MODULOS.proveedores },
+      { name: 'registro-proveedor', label: 'Registrar proveedor', roles: ROLE_GROUPS.proveedores, modulo: MODULOS.proveedores },
     ],
   },
   {
@@ -87,9 +87,9 @@ const allMenuGroups = [
     label: 'Evaluaciones',
     collapsible: true,
     items: [
-      { name: 'nueva-evaluacion', label: 'Nueva evaluación', roles: ROLE_GROUPS.evaluaciones },
-      { name: 'consolidacion', label: 'Consolidación', roles: ROLE_GROUPS.evaluaciones },
-      { name: 'evaluaciones-pendientes', label: 'Evaluaciones pendientes', roles: ROLE_GROUPS.evaluaciones },
+      { name: 'nueva-evaluacion', label: 'Nueva evaluación', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
+      { name: 'consolidacion', label: 'Consolidación', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
+      { name: 'evaluaciones-pendientes', label: 'Evaluaciones pendientes', roles: ROLE_GROUPS.evaluaciones, modulo: MODULOS.evaluaciones },
     ],
   },
   {
@@ -97,10 +97,10 @@ const allMenuGroups = [
     label: 'Reportes',
     collapsible: true,
     items: [
-      { name: 'reporte-desempeno', label: 'Reporte desempeño', roles: ROLE_GROUPS.reportes },
-      { name: 'reporte-evaluaciones', label: 'Reporte evaluaciones', roles: ROLE_GROUPS.reportes },
-      { name: 'reporte-proveedores', label: 'Reporte proveedores', roles: ROLE_GROUPS.reportes },
-      { name: 'bitacora', label: 'Bitácora', roles: ROLE_GROUPS.administracion },
+      { name: 'reporte-desempeno', label: 'Reporte desempeño', roles: ROLE_GROUPS.reportes, modulo: MODULOS.reportes },
+      { name: 'reporte-evaluaciones', label: 'Reporte evaluaciones', roles: ROLE_GROUPS.reportes, modulo: MODULOS.reportes },
+      { name: 'reporte-proveedores', label: 'Reporte proveedores', roles: ROLE_GROUPS.reportes, modulo: MODULOS.reportes },
+      { name: 'bitacora', label: 'Bitácora', roles: ROLE_GROUPS.administracion, modulo: MODULOS.bitacora },
     ],
   },
   {
@@ -108,10 +108,10 @@ const allMenuGroups = [
     label: 'Catálogos',
     collapsible: true,
     items: [
-      { name: 'criterios', label: 'Criterios', roles: ROLE_GROUPS.catalogos },
-      { name: 'unidades', label: 'Unidades', roles: ROLE_GROUPS.catalogos },
-      { name: 'productos', label: 'Productos / Materiales', roles: ROLE_GROUPS.catalogos },
-      { name: 'documentos', label: 'Documentos', roles: ROLE_GROUPS.documentos },
+      { name: 'criterios', label: 'Criterios', roles: ROLE_GROUPS.catalogos, modulo: MODULOS.criterios },
+      { name: 'unidades', label: 'Unidades', roles: ROLE_GROUPS.catalogos, modulo: MODULOS.unidades },
+      { name: 'productos', label: 'Productos / Materiales', roles: ROLE_GROUPS.catalogos, modulo: MODULOS.productos },
+      { name: 'documentos', label: 'Documentos', roles: ROLE_GROUPS.documentos, modulo: MODULOS.documentos },
     ],
   },
   {
@@ -119,14 +119,14 @@ const allMenuGroups = [
     label: 'Seguridad',
     collapsible: true,
     items: [
-      { name: 'usuarios', label: 'Usuarios', roles: ROLE_GROUPS.administracion },
-      { name: 'roles', label: 'Roles', roles: ROLE_GROUPS.administracion },
+      { name: 'usuarios', label: 'Usuarios', roles: ROLE_GROUPS.administracion, modulo: MODULOS.usuarios },
+      { name: 'roles', label: 'Roles', roles: ROLE_GROUPS.administracion, modulo: MODULOS.roles },
     ],
   },
   {
     id: 'config',
     collapsible: false,
-    items: [{ name: 'configuracion', label: 'Configuración', roles: ROLE_GROUPS.administracion }],
+    items: [{ name: 'configuracion', label: 'Configuración', roles: ROLE_GROUPS.administracion, modulo: MODULOS.configuracion }],
   },
 ]
 
@@ -134,7 +134,9 @@ const menuGroups = computed(() =>
   allMenuGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => hasRole(auth.user, item.roles)),
+      items: group.items.filter((item) =>
+        hasAccess(auth.user, { roles: item.roles, modulo: item.modulo }),
+      ),
     }))
     .filter((group) => group.items.length),
 )

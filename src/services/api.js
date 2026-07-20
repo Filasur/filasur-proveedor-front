@@ -117,7 +117,7 @@ const realApi = {
     listar: () => request('/ranking'),
   },
   bitacora: {
-    listar: () => request('/bitacora'),
+    listar: () => request('/bitacora?top=300'),
   },
   reportes: {
     listar: (params) => request(`/reportes?${new URLSearchParams(params || {})}`),

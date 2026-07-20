@@ -1,7 +1,10 @@
 <template>
   <div>
     <h2 class="page-title">Gestión de roles</h2>
-    <p class="page-subtitle">Permisos y acceso por módulo del sistema</p>
+    <p class="page-subtitle">
+      Los módulos marcados aquí controlan qué ve cada rol en el menú al iniciar sesión
+      (tabla <code>RolModulo</code>). El módulo <strong>Todos</strong> da acceso completo.
+    </p>
 
     <div class="roles-grid">
       <article v-for="r in roles" :key="r.id" class="card role-card">
