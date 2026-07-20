@@ -74,64 +74,68 @@
         </section>
       </div>
 
-      <section class="card">
-        <h3>Próximas evaluaciones por vencer</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <ThHint label="Proveedor" hint="Empresa con evaluación próxima a vencer." />
-              <ThHint label="Producto" hint="Material evaluado." />
-              <ThHint label="Áreas pendientes" hint="Áreas sin puntaje registrado." />
-              <ThHint label="Fecha límite" hint="Vencimiento del plazo de evaluación." />
-              <ThHint label="Estado" hint="En proceso, pendiente, etc." />
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="e in data.proximasVencer" :key="e.id">
-              <td>{{ e.proveedor }}</td>
-              <td>{{ e.producto || '—' }}</td>
-              <td>{{ e.areasPendientes ? `${e.areasPendientes} área(s)` : 'Completa' }}</td>
-              <td>{{ e.fechaLimite || '—' }}</td>
-              <td><StatusBadge :status="e.estado" /></td>
-            </tr>
-            <tr v-if="!data.proximasVencer?.length">
-              <td colspan="5" class="empty-state">No hay evaluaciones próximas a vencer.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+      <div class="dashboard-alerts">
+        <section class="card">
+          <h3>Próximas evaluaciones por vencer</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <ThHint label="Proveedor" hint="Empresa con evaluación próxima a vencer." />
+                <ThHint label="Producto" hint="Material evaluado." />
+                <ThHint label="Áreas pendientes" hint="Áreas sin puntaje registrado." />
+                <ThHint label="Fecha límite" hint="Vencimiento del plazo de evaluación." />
+                <ThHint label="Estado" hint="En proceso u otro estado activo." />
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="e in data.proximasVencer" :key="e.id">
+                <td>{{ e.proveedor }}</td>
+                <td>{{ e.producto || '—' }}</td>
+                <td>{{ e.areasPendientes ? `${e.areasPendientes} área(s)` : 'Completa' }}</td>
+                <td>{{ e.fechaLimite || '—' }}</td>
+                <td><StatusBadge :status="e.estado" /></td>
+              </tr>
+              <tr v-if="!data.proximasVencer?.length">
+                <td colspan="5" class="empty-state">
+                  No hay evaluaciones próximas a vencer.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
-      <section class="card">
-        <h3>
-          Documentos por vencer
-          <span v-if="data.resumen?.documentosPorVencer" class="badge-alerta">
-            {{ data.resumen.documentosPorVencer }}
-          </span>
-        </h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <ThHint label="Proveedor" hint="Empresa dueña del documento." />
-              <ThHint label="Archivo" hint="Nombre del documento cargado." />
-              <ThHint label="Categoría" hint="Tipo documental." />
-              <ThHint label="Vencimiento" hint="Fecha de caducidad del documento." />
-              <ThHint label="Estado" hint="Vencido o próximo a vencer." />
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="d in data.documentosPorVencer" :key="d.id">
-              <td>{{ d.proveedor }}</td>
-              <td>{{ d.archivo }}</td>
-              <td>{{ d.categoria }}</td>
-              <td>{{ d.fechaVencimiento || '—' }}</td>
-              <td><StatusBadge :status="d.estado" /></td>
-            </tr>
-            <tr v-if="!data.documentosPorVencer?.length">
-              <td colspan="5" class="empty-state">No hay documentos próximos a vencer.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+        <section class="card">
+          <h3>
+            Documentos por vencer
+            <span v-if="data.resumen?.documentosPorVencer" class="badge-alerta">
+              {{ data.resumen.documentosPorVencer }}
+            </span>
+          </h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <ThHint label="Proveedor" hint="Empresa dueña del documento." />
+                <ThHint label="Archivo" hint="Nombre del documento cargado." />
+                <ThHint label="Categoría" hint="Tipo documental." />
+                <ThHint label="Vencimiento" hint="Fecha de caducidad del documento." />
+                <ThHint label="Estado" hint="Vencido o próximo a vencer." />
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in data.documentosPorVencer" :key="d.id">
+                <td>{{ d.proveedor }}</td>
+                <td>{{ d.archivo }}</td>
+                <td>{{ d.categoria }}</td>
+                <td>{{ d.fechaVencimiento || '—' }}</td>
+                <td><StatusBadge :status="d.estado" /></td>
+              </tr>
+              <tr v-if="!data.documentosPorVencer?.length">
+                <td colspan="5" class="empty-state">No hay documentos próximos a vencer.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
     </template>
   </div>
 </template>
@@ -166,7 +170,7 @@ const kpis = computed(() => {
     {
       label: 'Evaluaciones en proceso',
       value: r.evaluacionesEnProceso ?? 0,
-      hint: 'En evaluación actualmente',
+      hint: 'Evaluaciones activas (aún no finalizadas)',
       tooltip: 'Evaluaciones que aún no han sido consolidadas o cerradas.',
       icon: '⏱',
       color: 'blue',
@@ -246,7 +250,7 @@ onBeforeUnmount(() => chartInstance?.destroy())
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 28px;
 }
 
 .kpi {
@@ -282,7 +286,17 @@ onBeforeUnmount(() => chartInstance?.destroy())
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 28px;
+}
+
+.dashboard-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.dashboard-alerts h3 {
+  margin-top: 0;
 }
 
 .dashboard-grid h3 { margin-top: 0; }

@@ -1,8 +1,8 @@
 const CHART_DEFAULT = {
   total: 0,
-  labels: ['En proceso', 'En evaluación', 'Finalizadas'],
-  values: [0, 0, 0],
-  colors: ['#1890ff', '#69c0ff', '#faad14'],
+  labels: ['En proceso', 'Finalizadas'],
+  values: [0, 0],
+  colors: ['#1890ff', '#faad14'],
 }
 
 const RESUMEN_DEFAULT = {
@@ -30,15 +30,13 @@ function parseResumen(source) {
       pick(src, 'evaluacionesEnProceso', 'EvaluacionesEnProceso') ?? 0,
     evaluacionesFinalizadas:
       pick(src, 'evaluacionesFinalizadas', 'EvaluacionesFinalizadas') ?? 0,
-    evaluacionesEnEvaluacion:
-      pick(src, 'evaluacionesEnEvaluacion', 'EvaluacionesEnEvaluacion') ?? 0,
     proveedoresAprobados:
       pick(src, 'proveedoresAprobados', 'ProveedoresAprobados') ?? 0,
     puntajePromedio: pick(src, 'puntajePromedio', 'PuntajePromedio') ?? 0,
   }
 }
 
-/** Gráfico donut: el API no siempre envía chartPorEstado; se arma desde los KPIs del resumen. */
+/** Gráfico donut: En proceso (activo) vs Finalizadas. */
 function buildChartPorEstado(resumen, chartRaw) {
   const fromApi = chartRaw
     ? {
@@ -50,12 +48,23 @@ function buildChartPorEstado(resumen, chartRaw) {
     : null
 
   const sumFromApi = fromApi?.values?.reduce((a, b) => a + (Number(b) || 0), 0) ?? 0
-  if (fromApi && sumFromApi > 0) return fromApi
+  if (fromApi && sumFromApi > 0 && fromApi.labels?.length === 2) return fromApi
+
+  // Compatibilidad: si el API aún manda 3 series, fusiona En proceso + En evaluación.
+  if (fromApi && fromApi.labels?.length === 3 && fromApi.values?.length === 3) {
+    const activo = (Number(fromApi.values[0]) || 0) + (Number(fromApi.values[1]) || 0)
+    const finalizadas = Number(fromApi.values[2]) || 0
+    return {
+      total: activo + finalizadas,
+      labels: CHART_DEFAULT.labels,
+      values: [activo, finalizadas],
+      colors: CHART_DEFAULT.colors,
+    }
+  }
 
   const enProceso = resumen.evaluacionesEnProceso ?? 0
-  const enEvaluacion = resumen.evaluacionesEnEvaluacion ?? 0
   const finalizadas = resumen.evaluacionesFinalizadas ?? 0
-  const values = [enProceso, enEvaluacion, finalizadas]
+  const values = [enProceso, finalizadas]
 
   return {
     ...CHART_DEFAULT,
