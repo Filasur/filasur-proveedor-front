@@ -51,7 +51,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="e in filtrados" :key="e.id">
+          <tr
+            v-for="e in filtrados"
+            :key="e.id"
+            :class="{ 'fila-destacada': Number(e.id) === idDestacada }"
+          >
             <td>{{ e.proveedor }}</td>
             <td>{{ e.producto || '—' }}</td>
             <td>{{ etiquetaTurno(e) }}</td>
@@ -82,28 +86,35 @@
         <template v-if="evaluaciones.length && filtroEstado === 'mi-turno'">
           Pruebe «Solo pendientes» o «En proceso» para ver evaluaciones en curso de otros roles.
         </template>
+        <template v-else-if="!evaluaciones.length">
+          Si acaba de enviar una fase, recargue o revise el filtro «En proceso».
+        </template>
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { ROLES } from '@/security/permissions'
 import { puedeIniciarEvaluacion } from '@/utils/areaEvaluacion'
-import { toastError } from '@/utils/alerts'
+import { toastError, toastSuccess } from '@/utils/alerts'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 /** Solo estos estados admiten edición de borrador en el asistente. */
 const ESTADOS_EDITABLES = new Set(['En proceso', 'En evaluación'])
 
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const evaluaciones = ref([])
 const filtroEstado = ref('pendientes')
 const busqueda = ref('')
 const cargando = ref(true)
+const idDestacada = ref(null)
 
 const puedeIniciar = computed(() => puedeIniciarEvaluacion(auth.user?.rol))
 const esAdmin = computed(() => auth.user?.rol === ROLES.admin)
@@ -142,18 +153,53 @@ function etiquetaTurno(e) {
   return e.rolTurno
 }
 
-onMounted(async () => {
+function aplicarQueryFiltros() {
+  const estadoQuery = String(route.query.estado || '').trim()
+  if (estadoQuery) {
+    filtroEstado.value = estadoQuery
+  }
+  const destacada = Number(route.query.destacada)
+  // Solo asigna; no limpia al quitar el query para conservar el resaltado.
+  if (Number.isInteger(destacada) && destacada > 0) {
+    idDestacada.value = destacada
+  }
+}
+
+async function cargar() {
   cargando.value = true
   try {
     const data = await api.evaluaciones.listar()
     evaluaciones.value = Array.isArray(data) ? data : []
+    if (idDestacada.value) {
+      const encontrada = evaluaciones.value.find((e) => Number(e.id) === idDestacada.value)
+      if (encontrada) {
+        toastSuccess(
+          `Evaluación de «${encontrada.proveedor}» en proceso. Turno: «${encontrada.rolTurno || 'En curso'}».`,
+        )
+      } else {
+        toastError(
+          'La evaluación se guardó, pero no aparece en este listado. Pruebe el filtro «Todos» o «En proceso».',
+        )
+      }
+      router.replace({ name: 'evaluaciones-pendientes', query: { estado: filtroEstado.value } })
+    }
   } catch (e) {
     evaluaciones.value = []
     toastError(e.message || 'No se pudieron cargar las evaluaciones.')
   } finally {
     cargando.value = false
   }
-})
+}
+
+watch(
+  () => route.query,
+  () => {
+    aplicarQueryFiltros()
+  },
+  { immediate: true },
+)
+
+onMounted(cargar)
 </script>
 
 <style scoped>
@@ -199,5 +245,13 @@ onMounted(async () => {
 
 .link-action:hover {
   text-decoration: underline;
+}
+
+.fila-destacada {
+  background: #e6f4ff;
+}
+
+.fila-destacada td {
+  font-weight: 500;
 }
 </style>

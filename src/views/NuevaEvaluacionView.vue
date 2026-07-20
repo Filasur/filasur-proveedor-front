@@ -67,7 +67,8 @@
           <template v-else-if="esMiTurno">
             Es su turno (<strong>{{ auth.user?.rol }}</strong>). Complete sus criterios y avance a
             <strong>Confirmación</strong> para enviar su fase
-            (orden: Calidad → Compras → Logística).
+            (orden: Calidad → Compras → Logística). Completar los puntajes aquí
+            <strong>aún no los guarda</strong>: debe confirmar el envío en el último paso.
           </template>
           <template v-else>
             {{ avisoTurno || 'Aún no es su turno de evaluar.' }}
@@ -207,7 +208,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { useEvaluacionStore } from '@/stores/evaluacion'
 import { useAuthStore } from '@/stores/auth'
-import { toastError, toastSuccess } from '@/utils/alerts'
+import { alertInfo, confirmAction, toastError, toastSuccess } from '@/utils/alerts'
 import { ROLES } from '@/security/permissions'
 import {
   puedeCalificarArea,
@@ -227,7 +228,15 @@ const step = ref(0)
 const proveedores = ref([])
 const productos = ref([])
 const criterios = ref([])
+/** Puntajes del formulario (edición local, aún no enviados). */
 const puntajes = reactive({})
+/**
+ * Puntajes ya persistidos en el servidor.
+ * El turno / «fase enviada» se calcula solo con esto, no con lo que el usuario
+ * acaba de escribir; si no, al completar Calidad en pantalla la UI cree que
+ * ya se envió y bloquea Confirmación sin haber guardado.
+ */
+const puntajesGuardados = reactive({})
 const erroresPuntaje = reactive({})
 const saving = ref(false)
 const confirmadoEnvio = ref(false)
@@ -260,19 +269,24 @@ const criteriosACalificar = computed(() =>
 
 const esAdmin = computed(() => auth.user?.rol === ROLES.admin)
 
-const indiceFase = computed(() => indiceFaseActual(criteriosActivos.value, puntajes))
+/** Stepper de fases según lo ya guardado (no según el borrador local). */
+const indiceFase = computed(() =>
+  indiceFaseActual(criteriosActivos.value, puntajesGuardados),
+)
 
-const esMiTurno = computed(() => esTurnoDelRol(auth.user?.rol, criteriosActivos.value, puntajes))
+const esMiTurno = computed(() =>
+  esTurnoDelRol(auth.user?.rol, criteriosActivos.value, puntajesGuardados),
+)
 
 const avisoTurno = computed(() =>
-  mensajeEsperaTurno(auth.user?.rol, criteriosActivos.value, puntajes),
+  mensajeEsperaTurno(auth.user?.rol, criteriosActivos.value, puntajesGuardados),
 )
 
 const puedeGuardar = computed(() => esAdmin.value || esMiTurno.value)
 
-/** Tras guardar mi fase, ¿quién sigue? */
+/** Tras guardar mi fase, ¿quién sigue? (preview con puntajes locales). */
 const siguienteRolTrasMiFase = computed(() => {
-  const merged = { ...puntajes }
+  const merged = { ...puntajesGuardados, ...puntajes }
   for (const c of criteriosACalificar.value) {
     if (puntajeValido(puntajes[c.id])) {
       merged[c.id] = puntajes[c.id]
@@ -383,6 +397,21 @@ function sincronizarCriterios() {
   })
 }
 
+function limpiarPuntajes(target) {
+  Object.keys(target).forEach((key) => delete target[key])
+}
+
+function aplicarPuntajesGuardados(mapa) {
+  limpiarPuntajes(puntajesGuardados)
+  Object.entries(mapa || {}).forEach(([key, value]) => {
+    const n = Number(value)
+    if (!Number.isNaN(n)) {
+      puntajesGuardados[key] = n
+      puntajesGuardados[Number(key)] = n
+    }
+  })
+}
+
 function aplicarBorrador(data) {
   form.id = data.id
   form.proveedorId = data.proveedorId
@@ -391,9 +420,10 @@ function aplicarBorrador(data) {
   form.ordenCompra = data.ordenCompra || ''
   form.observaciones = data.observaciones || ''
 
-  Object.keys(puntajes).forEach((key) => delete puntajes[key])
-  Object.entries(data.puntajes || {}).forEach(([key, value]) => {
-    puntajes[key] = Number(value)
+  limpiarPuntajes(puntajes)
+  aplicarPuntajesGuardados(data.puntajes)
+  Object.entries(puntajesGuardados).forEach(([key, value]) => {
+    puntajes[key] = value
   })
   sincronizarCriterios()
 }
@@ -433,7 +463,7 @@ onMounted(async () => {
       try {
         const borrador = await api.evaluaciones.obtenerBorrador(idBorrador)
         aplicarBorrador(borrador)
-        const turno = faseActual(criteriosActivos.value, puntajes)
+        const turno = faseActual(criteriosActivos.value, puntajesGuardados)
         if (!esAdmin.value && !esMiTurno.value) {
           toastError(
             turno
@@ -476,7 +506,7 @@ async function guardar() {
       .filter((c) => puntajeValido(puntajes[c.id]))
       .map((c) => [String(c.id), puntajes[c.id]]),
   )
-  const merged = { ...puntajes }
+  const merged = { ...puntajesGuardados }
   for (const [k, v] of Object.entries(puntajesPermitidos)) {
     merged[Number(k)] = v
     merged[k] = v
@@ -484,11 +514,14 @@ async function guardar() {
   const siguienteTrasGuardar = faseActual(criteriosActivos.value, merged)
   const finalizar = siguienteTrasGuardar === null
 
-  const mensajeConfirm = finalizar
-    ? '¿Confirma finalizar la evaluación completa? Esta acción no se puede deshacer desde aquí.'
-    : `¿Confirma cerrar su fase de «${auth.user?.rol}»? El turno pasará a «${siguienteTrasGuardar}» y ya no podrá editar estos puntajes.`
-
-  if (!window.confirm(mensajeConfirm)) return
+  const ok = await confirmAction({
+    title: finalizar ? 'Finalizar evaluación' : 'Enviar fase',
+    text: finalizar
+      ? '¿Confirma finalizar la evaluación completa? Esta acción no se puede deshacer desde aquí.'
+      : `¿Confirma cerrar su fase de «${auth.user?.rol}»? El turno pasará a «${siguienteTrasGuardar}» y ya no podrá editar estos puntajes.`,
+    confirmText: finalizar ? 'Sí, finalizar' : 'Sí, enviar fase',
+  })
+  if (!ok) return
 
   saving.value = true
   try {
@@ -497,22 +530,29 @@ async function guardar() {
       puntajes: puntajesPermitidos,
       finalizar,
     })
-    if (finalizar) {
-      toastSuccess('Evaluación finalizada. Puede revisar la consolidación.')
-    } else {
-      toastSuccess(`Fase de «${auth.user?.rol}» enviada. Siguiente turno: «${siguienteTrasGuardar}».`)
-    }
-    evalStore.resetBorrador()
     const id = resultado?.id
+    aplicarPuntajesGuardados(merged)
+    evalStore.resetBorrador()
+
     if (finalizar) {
-      router.push(
-        id
-          ? { name: 'consolidacion', query: { id } }
-          : { name: 'consolidacion' },
+      await alertInfo(
+        'Evaluación finalizada',
+        'La evaluación quedó completa. Puede revisarla en consolidación.',
       )
-    } else if (id) {
+      router.push(id ? { name: 'consolidacion', query: { id } } : { name: 'consolidacion' })
+      return
+    }
+
+    await alertInfo(
+      'Fase enviada',
+      `Su fase de «${auth.user?.rol}» se guardó correctamente. Turno actual: «${siguienteTrasGuardar}». La encontrará en Evaluaciones pendientes (filtro «En proceso» o «Solo pendientes»).`,
+    )
+    if (id) {
       form.id = id
-      router.push({ name: 'evaluaciones-pendientes' })
+      router.push({
+        name: 'evaluaciones-pendientes',
+        query: { destacada: String(id), estado: 'En proceso' },
+      })
     }
   } catch (e) {
     toastError(e.message || 'No se pudo guardar la evaluación.')
