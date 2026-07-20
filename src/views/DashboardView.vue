@@ -250,7 +250,7 @@ onBeforeUnmount(() => chartInstance?.destroy())
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 40px;
 }
 
 .kpi {
@@ -286,13 +286,17 @@ onBeforeUnmount(() => chartInstance?.destroy())
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 40px;
 }
 
 .dashboard-alerts {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 40px;
+}
+
+.dashboard-alerts > .card {
+  margin: 0;
 }
 
 .dashboard-alerts h3 {
