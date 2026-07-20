@@ -87,8 +87,16 @@ export function esTurnoDelRol(rolUsuario, criterios, puntajes) {
 
 export function mensajeEsperaTurno(rolUsuario, criterios, puntajes) {
   const actual = faseActual(criterios, puntajes)
-  if (!actual) return 'La evaluación ya tiene todos los puntajes. Puede revisarla en consolidación.'
+  if (!actual) {
+    return 'La evaluación ya tiene todos los puntajes. Puede revisarla en consolidación.'
+  }
   if (rolUsuario === actual) return ''
+
+  const idxUser = ORDEN_FASES.indexOf(rolUsuario)
+  const idxActual = ORDEN_FASES.indexOf(actual)
+  if (idxUser >= 0 && idxActual > idxUser) {
+    return `Su fase («${rolUsuario}») ya fue enviada. Turno actual: «${actual}».`
+  }
   return `Aún no es su turno. Debe completar primero la fase de «${actual}» (orden: Calidad → Compras → Logística).`
 }
 

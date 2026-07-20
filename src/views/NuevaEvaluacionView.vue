@@ -65,19 +65,14 @@
             Como administrador puede completar todos los puntajes (sin respetar el orden por roles).
           </template>
           <template v-else-if="esMiTurno">
-            Es su turno (<strong>{{ auth.user?.rol }}</strong>). Complete solo sus criterios y guarde el
-            borrador; luego continúa el siguiente rol
+            Es su turno (<strong>{{ auth.user?.rol }}</strong>). Complete sus criterios y avance a
+            <strong>Confirmación</strong> para enviar su fase
             (orden: Calidad → Compras → Logística).
           </template>
           <template v-else>
             {{ avisoTurno || 'Aún no es su turno de evaluar.' }}
           </template>
         </p>
-        <div v-if="mapeoVisible.length" class="mapeo-roles card-inline">
-          <span v-for="m in mapeoVisible" :key="m.area" class="mapeo-chip">
-            {{ m.area }} → {{ m.rol }}
-          </span>
-        </div>
         <p v-if="!criteriosACalificar.length" class="empty-state">
           No hay criterios activos asignados a su rol.
         </p>
@@ -98,7 +93,6 @@
             </div>
             <label :for="`puntaje-${c.id}`" class="criterio-nombre">
               {{ c.nombre }}
-              <span class="area-hint">{{ etiquetaCalificador(c.area) }}</span>
             </label>
             <input
               :id="`puntaje-${c.id}`"
@@ -125,7 +119,18 @@
       </div>
 
       <div v-else>
-        <h3>Resumen</h3>
+        <h3>Confirmación</h3>
+        <p class="step-hint confirm-hint">
+          <template v-if="cierreFinal">
+            Revise los puntajes. Al confirmar se <strong>finalizará</strong> la evaluación completa.
+          </template>
+          <template v-else>
+            Revise sus puntajes. Al confirmar se <strong>cierra su fase de {{ auth.user?.rol }}</strong>
+            y el turno pasará a
+            <strong>{{ siguienteRolTrasMiFase || 'el siguiente rol' }}</strong>.
+            No podrá editar estos puntajes después.
+          </template>
+        </p>
         <ul class="resumen">
           <li><strong>Proveedor:</strong> {{ proveedorLabel }}</li>
           <li><strong>Periodo:</strong> {{ form.periodo }}</li>
@@ -134,11 +139,11 @@
           <li><strong>Criterios de su rol:</strong> {{ criteriosACalificar.length }}</li>
           <li v-if="esAdmin"><strong>Puntaje estimado:</strong> {{ puntajeEstimado }}%</li>
           <li v-else>
-            <strong>Estado:</strong>
+            <strong>Acción:</strong>
             {{
-              todosLosPuntajesCompletos
-                ? 'Todas las fases completas — puede finalizar'
-                : `Fase ${auth.user?.rol} lista — el siguiente rol continuará`
+              cierreFinal
+                ? 'Finalizar evaluación'
+                : `Enviar fase «${auth.user?.rol}» → turno «${siguienteRolTrasMiFase}»`
             }}
           </li>
         </ul>
@@ -146,7 +151,6 @@
           <thead>
             <tr>
               <ThHint label="Criterio" />
-              <ThHint label="Rol evaluador"/>
               <ThHint label="Peso"/>
               <ThHint label="Puntaje"/>
             </tr>
@@ -154,12 +158,16 @@
           <tbody>
             <tr v-for="c in criteriosACalificar" :key="c.id">
               <td>{{ c.nombre }}</td>
-              <td>{{ etiquetaCalificador(c.area) }}</td>
               <td>{{ c.peso }}%</td>
               <td>{{ puntajes[c.id] ?? '-' }}</td>
             </tr>
           </tbody>
         </table>
+        <label class="confirm-check">
+          <input v-model="confirmadoEnvio" type="checkbox" />
+          Confirmo que deseo
+          {{ cierreFinal ? 'finalizar la evaluación' : `cerrar mi fase de ${auth.user?.rol}` }}.
+        </label>
       </div>
 
       <div class="step-actions">
@@ -178,7 +186,13 @@
           >
             Siguiente
           </button>
-          <button v-else type="button" class="btn btn-primary" :disabled="saving || !puedeGuardar" @click="guardar">
+          <button
+            v-else
+            type="button"
+            class="btn btn-primary"
+            :disabled="saving || !puedeGuardar || !confirmadoEnvio"
+            @click="guardar"
+          >
             {{ textoBotonGuardar }}
           </button>
         </div>
@@ -196,7 +210,6 @@ import { useAuthStore } from '@/stores/auth'
 import { toastError, toastSuccess } from '@/utils/alerts'
 import { ROLES } from '@/security/permissions'
 import {
-  etiquetaCalificador,
   puedeCalificarArea,
   puedeIniciarEvaluacion,
   esTurnoDelRol,
@@ -204,7 +217,6 @@ import {
   indiceFaseActual,
   mensajeEsperaTurno,
   ORDEN_FASES,
-  RESUMEN_MAPEO_AREAS,
 } from '@/utils/areaEvaluacion'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
@@ -218,6 +230,7 @@ const criterios = ref([])
 const puntajes = reactive({})
 const erroresPuntaje = reactive({})
 const saving = ref(false)
+const confirmadoEnvio = ref(false)
 
 const PUNTAJE_MIN = 0
 const PUNTAJE_MAX = 100
@@ -257,14 +270,19 @@ const avisoTurno = computed(() =>
 
 const puedeGuardar = computed(() => esAdmin.value || esMiTurno.value)
 
-const mapeoVisible = computed(() => {
-  if (esAdmin.value) return RESUMEN_MAPEO_AREAS
-  return RESUMEN_MAPEO_AREAS.filter((m) => m.rol === auth.user?.rol)
+/** Tras guardar mi fase, ¿quién sigue? */
+const siguienteRolTrasMiFase = computed(() => {
+  const merged = { ...puntajes }
+  for (const c of criteriosACalificar.value) {
+    if (puntajeValido(puntajes[c.id])) {
+      merged[c.id] = puntajes[c.id]
+      merged[String(c.id)] = puntajes[c.id]
+    }
+  }
+  return faseActual(criteriosActivos.value, merged)
 })
 
-const todosLosPuntajesCompletos = computed(() =>
-  criteriosActivos.value.every((c) => puntajeValido(puntajes[c.id])),
-)
+const cierreFinal = computed(() => siguienteRolTrasMiFase.value === null)
 
 function puedeCalificar(area) {
   return puedeCalificarArea(auth.user?.rol, area)
@@ -382,12 +400,14 @@ function aplicarBorrador(data) {
 
 function onSiguiente() {
   if (step.value === 0) sincronizarCriterios()
+  if (step.value === 1) confirmadoEnvio.value = false
   step.value++
 }
 
 const textoBotonGuardar = computed(() => {
   if (saving.value) return 'Guardando...'
-  return todosLosPuntajesCompletos.value ? 'Finalizar evaluación' : 'Guardar y pasar al siguiente rol'
+  if (cierreFinal.value) return 'Confirmar y finalizar'
+  return `Confirmar y enviar a ${siguienteRolTrasMiFase.value || 'siguiente rol'}`
 })
 
 onMounted(async () => {
@@ -417,7 +437,9 @@ onMounted(async () => {
         if (!esAdmin.value && !esMiTurno.value) {
           toastError(
             turno
-              ? `Aún no es su turno. Falta completar la fase de «${turno}».`
+              ? auth.user?.rol && ORDEN_FASES.indexOf(auth.user.rol) < ORDEN_FASES.indexOf(turno)
+                ? `Su fase ya fue enviada. Turno actual: «${turno}».`
+                : `Aún no es su turno. Falta completar la fase de «${turno}».`
               : 'Esta evaluación ya tiene todos los puntajes.',
           )
         } else {
@@ -443,15 +465,33 @@ async function guardar() {
     toastError(avisoTurno.value || 'Aún no es su turno.')
     return
   }
+  if (!confirmadoEnvio.value) {
+    toastError('Marque la casilla de confirmación antes de enviar su fase.')
+    return
+  }
+
   sincronizarCriterios()
+  const puntajesPermitidos = Object.fromEntries(
+    criteriosACalificar.value
+      .filter((c) => puntajeValido(puntajes[c.id]))
+      .map((c) => [String(c.id), puntajes[c.id]]),
+  )
+  const merged = { ...puntajes }
+  for (const [k, v] of Object.entries(puntajesPermitidos)) {
+    merged[Number(k)] = v
+    merged[k] = v
+  }
+  const siguienteTrasGuardar = faseActual(criteriosActivos.value, merged)
+  const finalizar = siguienteTrasGuardar === null
+
+  const mensajeConfirm = finalizar
+    ? '¿Confirma finalizar la evaluación completa? Esta acción no se puede deshacer desde aquí.'
+    : `¿Confirma cerrar su fase de «${auth.user?.rol}»? El turno pasará a «${siguienteTrasGuardar}» y ya no podrá editar estos puntajes.`
+
+  if (!window.confirm(mensajeConfirm)) return
+
   saving.value = true
-  const finalizar = todosLosPuntajesCompletos.value
   try {
-    const puntajesPermitidos = Object.fromEntries(
-      criteriosACalificar.value
-        .filter((c) => puntajeValido(puntajes[c.id]))
-        .map((c) => [String(c.id), puntajes[c.id]]),
-    )
     const resultado = await evalStore.guardarBorrador({
       ...form,
       puntajes: puntajesPermitidos,
@@ -460,17 +500,7 @@ async function guardar() {
     if (finalizar) {
       toastSuccess('Evaluación finalizada. Puede revisar la consolidación.')
     } else {
-      const merged = { ...puntajes }
-      for (const [k, v] of Object.entries(puntajesPermitidos)) {
-        merged[Number(k)] = v
-        merged[k] = v
-      }
-      const siguienteTrasGuardar = faseActual(criteriosActivos.value, merged)
-      toastSuccess(
-        siguienteTrasGuardar
-          ? `Fase guardada. Siguiente turno: «${siguienteTrasGuardar}».`
-          : 'Borrador guardado.',
-      )
+      toastSuccess(`Fase de «${auth.user?.rol}» enviada. Siguiente turno: «${siguienteTrasGuardar}».`)
     }
     evalStore.resetBorrador()
     const id = resultado?.id
@@ -662,8 +692,26 @@ async function guardar() {
   margin-bottom: 16px;
 }
 
-.resumen-tabla {
-  margin-top: 8px;
+.confirm-hint {
+  margin-bottom: 12px;
+}
+
+.confirm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--filasur-text);
+  cursor: pointer;
+}
+
+.confirm-check input {
+  margin-top: 3px;
 }
 
 .fases-stepper {

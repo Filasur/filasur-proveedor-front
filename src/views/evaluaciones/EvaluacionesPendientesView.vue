@@ -20,8 +20,8 @@
       <div class="field">
         <label>Estado</label>
         <select v-model="filtroEstado">
-          <option value="mi-turno">Mi turno</option>
           <option value="pendientes">Solo pendientes</option>
+          <option value="mi-turno">Mi turno</option>
           <option value="">Todos</option>
           <option value="En proceso">En proceso</option>
           <option value="En evaluación">En evaluación</option>
@@ -38,7 +38,8 @@
     </div>
 
     <div class="card">
-      <table class="data-table">
+      <p v-if="cargando" class="empty-state">Cargando evaluaciones…</p>
+      <table v-else class="data-table">
         <thead>
           <tr>
             <th>Proveedor</th>
@@ -76,7 +77,12 @@
           </tr>
         </tbody>
       </table>
-      <p v-if="!filtrados.length" class="empty-state">No hay evaluaciones con los filtros actuales.</p>
+      <p v-if="!cargando && !filtrados.length" class="empty-state">
+        No hay evaluaciones con los filtros actuales.
+        <template v-if="evaluaciones.length && filtroEstado === 'mi-turno'">
+          Pruebe «Solo pendientes» o «En proceso» para ver evaluaciones en curso de otros roles.
+        </template>
+      </p>
     </div>
   </div>
 </template>
@@ -87,6 +93,7 @@ import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { ROLES } from '@/security/permissions'
 import { puedeIniciarEvaluacion } from '@/utils/areaEvaluacion'
+import { toastError } from '@/utils/alerts'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 /** Solo estos estados admiten edición de borrador en el asistente. */
@@ -94,24 +101,26 @@ const ESTADOS_EDITABLES = new Set(['En proceso', 'En evaluación'])
 
 const auth = useAuthStore()
 const evaluaciones = ref([])
-const filtroEstado = ref('mi-turno')
+const filtroEstado = ref('pendientes')
 const busqueda = ref('')
+const cargando = ref(true)
 
 const puedeIniciar = computed(() => puedeIniciarEvaluacion(auth.user?.rol))
 const esAdmin = computed(() => auth.user?.rol === ROLES.admin)
 
 const filtrados = computed(() => {
-  const q = busqueda.value.toLowerCase()
+  const q = busqueda.value.toLowerCase().trim()
   return evaluaciones.value.filter((e) => {
+    const estado = String(e.estado || '').trim()
     let matchE = true
     if (filtroEstado.value === 'mi-turno') {
-      matchE = ESTADOS_EDITABLES.has(e.estado) && esMiTurnoItem(e)
+      matchE = ESTADOS_EDITABLES.has(estado) && esMiTurnoItem(e)
     } else if (filtroEstado.value === 'pendientes') {
-      matchE = ESTADOS_EDITABLES.has(e.estado)
+      matchE = ESTADOS_EDITABLES.has(estado)
     } else if (filtroEstado.value) {
-      matchE = e.estado === filtroEstado.value
+      matchE = estado.toLowerCase() === filtroEstado.value.toLowerCase()
     }
-    const matchQ = !q || e.proveedor.toLowerCase().includes(q)
+    const matchQ = !q || String(e.proveedor || '').toLowerCase().includes(q)
     return matchE && matchQ
   })
 })
@@ -122,17 +131,28 @@ function esMiTurnoItem(e) {
 }
 
 function puedeContinuar(e) {
-  return ESTADOS_EDITABLES.has(e.estado) && (esAdmin.value || e.rolTurno === auth.user?.rol)
+  const estado = String(e.estado || '').trim()
+  return ESTADOS_EDITABLES.has(estado) && (esAdmin.value || e.rolTurno === auth.user?.rol)
 }
 
 function etiquetaTurno(e) {
-  if (!ESTADOS_EDITABLES.has(e.estado)) return '—'
-  if (!e.rolTurno) return 'Completa'
+  const estado = String(e.estado || '').trim()
+  if (!ESTADOS_EDITABLES.has(estado)) return '—'
+  if (!e.rolTurno) return 'En curso'
   return e.rolTurno
 }
 
 onMounted(async () => {
-  evaluaciones.value = await api.evaluaciones.listar()
+  cargando.value = true
+  try {
+    const data = await api.evaluaciones.listar()
+    evaluaciones.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    evaluaciones.value = []
+    toastError(e.message || 'No se pudieron cargar las evaluaciones.')
+  } finally {
+    cargando.value = false
+  }
 })
 </script>
 
