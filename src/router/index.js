@@ -48,7 +48,12 @@ const routes = [
         path: 'proveedores/:id',
         name: 'detalle-proveedor',
         component: () => import('@/views/proveedores/DetalleProveedorView.vue'),
-        meta: { title: 'Detalle del proveedor', roles: ROLE_GROUPS.proveedores, modulo: MODULOS.proveedores },
+        meta: {
+          title: 'Detalle del proveedor',
+          roles: ROLE_GROUPS.proveedores,
+          modulo: MODULOS.proveedores,
+          modulosAny: [MODULOS.proveedores, MODULOS.reportes, MODULOS.evaluaciones],
+        },
       },
       {
         path: 'proveedores/:id/editar',
@@ -187,10 +192,14 @@ router.beforeEach((to, _from, next) => {
   if (token) {
     const auth = useAuthStore()
     if (!auth.token) auth.hydrateFromStorage()
-    const restricted = to.matched.find((r) => Array.isArray(r.meta.roles) || r.meta.modulo)
+    const restricted = to.matched.find((r) => Array.isArray(r.meta.roles) || r.meta.modulo || r.meta.modulosAny)
     if (
       restricted &&
-      !hasAccess(auth.user, { roles: restricted.meta.roles || [], modulo: restricted.meta.modulo })
+      !hasAccess(auth.user, {
+        roles: restricted.meta.roles || [],
+        modulo: restricted.meta.modulo,
+        modulosAny: restricted.meta.modulosAny,
+      })
     ) {
       next({ name: 'dashboard' })
       return

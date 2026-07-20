@@ -135,7 +135,11 @@ const menuGroups = computed(() =>
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
-        if (!hasAccess(auth.user, { roles: item.roles, modulo: item.modulo })) return false
+        if (!hasAccess(auth.user, {
+          roles: item.roles,
+          modulo: item.modulo,
+          modulosAny: item.modulosAny,
+        })) return false
         // Nueva evaluación: solo Calidad/Admin aunque el módulo Evaluaciones esté asignado a otros roles
         if (item.strictRoles) return hasRole(auth.user, item.roles)
         return true

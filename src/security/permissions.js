@@ -5,16 +5,20 @@ export const ROLES = {
   logistica: 'Logística',
 }
 
+/**
+ * Acceso base por rol (fallback si el login no trae módulos).
+ * Con RolModulo configurado, manda lo de la BD / JWT.
+ */
 export const ROLE_GROUPS = {
   administracion: [ROLES.admin],
   proveedores: [ROLES.admin, ROLES.compras, ROLES.logistica],
   evaluaciones: [ROLES.admin, ROLES.compras, ROLES.calidad, ROLES.logistica],
-  reportes: [ROLES.admin, ROLES.compras],
+  reportes: [ROLES.admin, ROLES.compras, ROLES.logistica],
   catalogos: [ROLES.admin, ROLES.compras],
   documentos: [ROLES.admin, ROLES.compras, ROLES.logistica],
 }
 
-/** Módulos de RolModulo (BD) → rutas del menú */
+/** Módulos de RolModulo (BD) → rutas del menú / API */
 export const MODULOS = {
   todos: 'Todos',
   proveedores: 'Proveedores',
@@ -36,14 +40,27 @@ export function hasRole(user, roles = []) {
 }
 
 /**
- * Acceso por módulo de RolModulo (si el usuario trae modulos desde login).
- * Si no hay modulos cargados, cae al filtro por rol (compatibilidad).
+ * Acceso alineado con el API (claims JWT «modulo»).
+ * - «Todos» abre todo.
+ * - Si el usuario trae módulos de RolModulo, esos mandan (igual que el back).
+ * - `modulosAny`: basta con tener uno de la lista (p. ej. detalle desde Reportes).
+ * - Sin módulos en sesión, cae al filtro por rol (compatibilidad).
  */
-export function hasAccess(user, { roles = [], modulo } = {}) {
+export function hasAccess(user, { roles = [], modulo, modulosAny } = {}) {
   const mods = Array.isArray(user?.modulos) ? user.modulos : []
-  if (mods.length) {
-    if (mods.includes(MODULOS.todos)) return true
-    if (modulo) return mods.includes(modulo)
+  if (mods.includes(MODULOS.todos)) return true
+
+  const required =
+    Array.isArray(modulosAny) && modulosAny.length
+      ? modulosAny
+      : modulo
+        ? [modulo]
+        : []
+
+  if (mods.length > 0) {
+    if (!required.length) return hasRole(user, roles)
+    return required.some((m) => mods.includes(m))
   }
+
   return hasRole(user, roles)
 }
