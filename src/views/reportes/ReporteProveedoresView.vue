@@ -78,7 +78,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import LabelHint from '@/components/ui/LabelHint.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import { toastError, toastSuccess } from '@/utils/alerts'
-import Swal from 'sweetalert2'
+import { seleccionarFormatoExportacion } from '@/utils/exportReporte'
 
 const proveedores = ref([])
 const busqueda = ref('')
@@ -202,52 +202,6 @@ function imprimirPdf() {
   win.print()
 }
 
-async function seleccionarFormatoExportacion() {
-  const result = await Swal.fire({
-    title: 'Exportar reporte',
-    html: `
-      <div class="export-options">
-        <button type="button" class="export-option selected" data-format="pdf">
-          <strong>PDF</strong>
-          <span>Vista lista para imprimir o guardar como PDF.</span>
-        </button>
-        <button type="button" class="export-option" data-format="excel">
-          <strong>Excel</strong>
-          <span>Archivo .xls con los datos filtrados.</span>
-        </button>
-      </div>
-    `,
-    icon: 'info',
-    customClass: {
-      popup: 'export-modal',
-      htmlContainer: 'export-modal-body',
-      confirmButton: 'export-confirm',
-    },
-    showCancelButton: true,
-    confirmButtonText: 'Exportar PDF',
-    cancelButtonText: 'Cancelar',
-    didOpen: () => {
-      const confirmButton = Swal.getConfirmButton()
-      document.querySelectorAll('.export-option').forEach((button) => {
-        button.addEventListener('click', () => {
-          const selected = button.dataset.format
-          document.querySelectorAll('.export-option').forEach((b) => b.classList.remove('selected'))
-          button.classList.add('selected')
-          if (confirmButton) {
-            confirmButton.textContent = selected === 'excel' ? 'Exportar Excel' : 'Exportar PDF'
-          }
-        })
-      })
-    },
-    preConfirm: () => {
-      const selected = document.querySelector('.export-option.selected')?.dataset.format || 'pdf'
-      return selected
-    },
-  })
-
-  return result.isConfirmed ? result.value : null
-}
-
 async function exportar() {
   if (!filtrados.value.length) {
     toastError('No hay datos para exportar.')
@@ -268,60 +222,4 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-:global(.export-modal) {
-  width: min(460px, calc(100vw - 32px));
-  border-radius: 14px;
-  padding: 28px;
-}
-
-:global(.export-modal-body) {
-  margin: 16px 0 0;
-  overflow: visible;
-}
-
-:global(.export-options) {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-:global(.export-option) {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 104px;
-  padding: 16px;
-  border: 1px solid var(--filasur-border);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--filasur-text);
-  text-align: left;
-  cursor: pointer;
-}
-
-:global(.export-option strong) {
-  font-size: 18px;
-}
-
-:global(.export-option span) {
-  color: var(--filasur-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-:global(.export-option.selected) {
-  border-color: var(--filasur-primary);
-  background: #e6f7ff;
-  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
-}
-
-:global(.export-confirm) {
-  min-width: 130px;
-}
-
-@media (max-width: 520px) {
-  :global(.export-options) {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

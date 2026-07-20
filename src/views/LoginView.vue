@@ -105,7 +105,10 @@ async function recuperar() {
         `Use esta contraseña para ingresar y luego cámbiela: ${data.passwordTemporal}`,
       )
     } else {
-      toastSuccess(data?.message || 'Solicitud procesada.')
+      toastSuccess(
+        data?.message ||
+          'Si el correo está registrado en el sistema, se generará una contraseña temporal. Use el email de un usuario de Filasur (ej. fvelazco@filasur.com), no un correo personal ajeno a la BD.',
+      )
     }
   } catch (e) {
     toastError(e.message || 'No se pudo recuperar la contraseña.')

@@ -73,8 +73,9 @@ async function archivosABase64(archivos) {
 }
 
 const realApi = {
-  auth: {
+    auth: {
     login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    logout: () => request('/auth/logout', { method: 'POST' }),
     recuperarPassword: (body) =>
       request('/auth/recuperar-password', { method: 'POST', body: JSON.stringify(body) }),
     cambiarPassword: (body) =>

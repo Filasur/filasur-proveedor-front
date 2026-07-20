@@ -484,6 +484,68 @@ input[type='radio'] {
   color: var(--filasur-muted);
 }
 
+/* Modal exportar PDF/Excel (SweetAlert2) */
+.export-modal {
+  width: min(460px, calc(100vw - 32px)) !important;
+  border-radius: 14px;
+  padding: 28px;
+}
+
+.export-modal-body {
+  margin: 16px 0 0;
+  overflow: visible !important;
+}
+
+.export-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.export-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 104px;
+  padding: 16px;
+  border: 1px solid var(--filasur-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--filasur-text);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.export-option strong {
+  font-size: 18px;
+}
+
+.export-option span {
+  color: var(--filasur-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.export-option.selected {
+  border-color: var(--filasur-primary);
+  background: #e6f7ff;
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
+}
+
+.export-confirm {
+  min-width: 130px;
+}
+
+@media (max-width: 520px) {
+  .export-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .two-col-layout {
   display: grid;
   grid-template-columns: 280px 1fr;

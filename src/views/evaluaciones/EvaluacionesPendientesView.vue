@@ -47,20 +47,22 @@
             <td>{{ etiquetaAreas(e) }}</td>
             <td><StatusBadge :status="e.estado" /></td>
             <td>{{ e.ordenCompra || '-' }}</td>
-            <td class="acciones">
-              <RouterLink
-                v-if="puedeContinuar(e)"
-                class="link-action"
-                :to="{ name: 'nueva-evaluacion', query: { id: e.id } }"
-              >
-                Continuar
-              </RouterLink>
-              <RouterLink
-                class="link-action"
-                :to="{ name: 'consolidacion', query: { id: e.id } }"
-              >
-                {{ puedeContinuar(e) ? 'Consolidar' : 'Ver' }}
-              </RouterLink>
+            <td class="col-acciones">
+              <div class="acciones">
+                <RouterLink
+                  v-if="puedeContinuar(e)"
+                  class="link-action"
+                  :to="{ name: 'nueva-evaluacion', query: { id: e.id } }"
+                >
+                  Continuar
+                </RouterLink>
+                <RouterLink
+                  class="link-action"
+                  :to="{ name: 'consolidacion', query: { id: e.id } }"
+                >
+                  {{ puedeContinuar(e) ? 'Consolidar' : 'Ver' }}
+                </RouterLink>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -118,9 +120,22 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
 }
+.col-acciones {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.acciones .link-action {
+  display: inline;
+  line-height: 1.3;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 </style>

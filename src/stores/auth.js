@@ -86,10 +86,18 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
-  function logout() {
-    token.value = ''
-    user.value = null
-    clearStoredSession()
+  async function logout() {
+    try {
+      if (token.value) {
+        await api.auth.logout()
+      }
+    } catch {
+      // Cerrar sesión local aunque falle el registro en bitácora
+    } finally {
+      token.value = ''
+      user.value = null
+      clearStoredSession()
+    }
   }
 
   return {

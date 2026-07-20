@@ -29,8 +29,8 @@ const auth = useAuthStore()
 const title = computed(() => route.meta.title || 'FILASUR')
 const userLabel = computed(() => auth.user?.nombre || auth.user?.email || 'Usuario')
 
-function onLogout() {
-  auth.logout()
+async function onLogout() {
+  await auth.logout()
   router.push({ name: 'login' })
 }
 </script>

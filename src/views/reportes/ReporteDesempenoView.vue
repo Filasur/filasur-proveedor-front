@@ -90,7 +90,7 @@ import api from '@/services/api'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ThHint from '@/components/ui/ThHint.vue'
 import { toastError, toastSuccess } from '@/utils/alerts'
-import Swal from 'sweetalert2'
+import { seleccionarFormatoExportacion } from '@/utils/exportReporte'
 
 const resumen = ref(null)
 const chartEstados = ref({ labels: [], values: [] })
@@ -226,19 +226,10 @@ function imprimirPdf() {
 }
 
 async function exportar() {
-  const result = await Swal.fire({
-    title: 'Exportar reporte',
-    input: 'select',
-    inputOptions: { pdf: 'PDF', excel: 'Excel' },
-    inputValue: 'pdf',
-    icon: 'info',
-    showCancelButton: true,
-    confirmButtonText: 'Exportar',
-    cancelButtonText: 'Cancelar',
-  })
-  if (!result.isConfirmed) return
+  const formato = await seleccionarFormatoExportacion()
+  if (!formato) return
 
-  if (result.value === 'excel') descargarExcel()
+  if (formato === 'excel') descargarExcel()
   else imprimirPdf()
   toastSuccess('Reporte generado.')
 }
